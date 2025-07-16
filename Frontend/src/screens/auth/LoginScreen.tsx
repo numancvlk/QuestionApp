@@ -5,8 +5,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
@@ -15,6 +16,10 @@ import Constants from "expo-constants";
 
 //MY SCRIPTS
 import { AppNavigationProp } from "../../navigation/types";
+
+//STYLES
+import { loginStyles } from "../../styles/ScreenStyles/LoginScreen.style";
+import { Colors } from "../../styles/GlobalStyles/colors";
 
 const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
@@ -62,83 +67,52 @@ const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LOG IN</Text>
+    <KeyboardAvoidingView
+      style={loginStyles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={loginStyles.content}>
+        <Text style={loginStyles.title}>Welcome Back!</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Username or Email"
-        value={emailOrUsername}
-        onChangeText={setEmailOrUsername}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? "Logging In..." : "Login"}
+        <Text style={loginStyles.subtitle}>
+          Log in to continue your coding journey.
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate("RegisterScreen")}>
-        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
-      </TouchableOpacity>
-    </View>
+        <TextInput
+          style={loginStyles.input}
+          placeholder="Username or Email"
+          placeholderTextColor={Colors.textPlaceholder}
+          value={emailOrUsername}
+          onChangeText={setEmailOrUsername}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={loginStyles.input}
+          placeholder="Password"
+          placeholderTextColor={Colors.textPlaceholder}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity
+          style={loginStyles.button}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={loginStyles.buttonText}>
+            {loading ? "Logging In..." : "Login"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("RegisterScreen")}>
+          <Text style={loginStyles.linkText}>
+            Don't have an account?{" "}
+            <Text style={loginStyles.linkTextBold}>Sign up</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
-    color: "#333",
-  },
-  input: {
-    width: "100%",
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: "#fff",
-  },
-  button: {
-    width: "100%",
-    padding: 15,
-    backgroundColor: "#007bff",
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  linkText: {
-    color: "#007bff",
-    fontSize: 16,
-  },
-});
 
 export default LoginScreen;
