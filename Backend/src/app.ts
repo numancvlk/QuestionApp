@@ -5,8 +5,12 @@ import cors from "cors";
 
 //MY SCRIPTS
 import { connectDB } from "./config";
-import authRoutes from "./routes/authRoutes";
 import errorHandler from "./middleware/errorHandler";
+
+//ROUTES
+import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
+import languageRoutes from "./routes/languageRoutes";
 
 dotenv.config();
 
@@ -19,6 +23,8 @@ app.use(express.json());
 
 //ROUTES
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/languages", languageRoutes);
 
 app.use(errorHandler);
 

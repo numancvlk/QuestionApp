@@ -1,15 +1,15 @@
 //LIBRARY
-import mongoose from "mongoose";
+import mongoose, { Document as MoongoseDocument } from "mongoose";
 import bcrypt from "bcryptjs";
 
-export interface IUser extends mongoose.Document {
+export interface IUser extends MoongoseDocument {
   username: string;
   email: string;
   passwordHash: string;
   globalScore: number;
   dailyStreak: number;
   lastActiveDate: Date;
-  selectedLanguageId?: string;
+  selectedLanguageId?: mongoose.Types.ObjectId | null;
   languageProgress: Map<
     string,
     { completedTestIds: string[]; currentMapNodeId: string }
@@ -54,7 +54,7 @@ const UserSchema = new mongoose.Schema(
       default: Date.now,
     },
     selectedLanguageId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Language",
       default: null,
     },
