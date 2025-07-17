@@ -90,7 +90,7 @@ export const registerUser = async (
 
     await newUser.save();
 
-    const token = generateToken(newUser._id!.toString());
+    const token = await generateToken(newUser._id!.toString());
 
     res.status(201).json({
       success: true,
@@ -102,6 +102,7 @@ export const registerUser = async (
         email: newUser.email,
         globalScore: newUser.globalScore,
         dailyStreak: newUser.dailyStreak,
+        selectedLanguageId: newUser.selectedLanguageId || null,
       },
     });
   } catch (error) {
@@ -141,7 +142,7 @@ export const loginUser = async (
       return next(error);
     }
 
-    const token = generateToken(user._id!.toString());
+    const token = await generateToken(user._id!.toString());
 
     res.status(200).json({
       success: true,
@@ -153,6 +154,7 @@ export const loginUser = async (
         email: user.email,
         globalScore: user.globalScore,
         dailyStreak: user.dailyStreak,
+        selectedLanguageId: user.selectedLanguageId || null,
       },
     });
   } catch (error) {

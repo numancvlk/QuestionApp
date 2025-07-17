@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import { Request, Response } from "express";
 
 //MY SCRIPTS
@@ -53,7 +53,9 @@ export const getUserProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    res.json(user);
+    res.json({
+      user: user.toObject(),
+    });
   } catch (error) {
     console.error("Error fetching user profile");
     res.status(500).json({ message: "Server error." });

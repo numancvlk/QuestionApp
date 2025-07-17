@@ -1,77 +1,83 @@
-// LIBRARY
-import React, { useState, useEffect } from "react";
-import { View, Text } from "react-native";
-import {
-  NavigationContainer,
-  NavigationContainerRef,
-} from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// App.tsx
 
-// SCREENS
+// LIBRARY IMPORTS
+import React from "react";
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+// SCREEN IMPORTS
 import RegisterScreen from "./src/screens/auth/RegisterScreen";
 import LoginScreen from "./src/screens/auth/LoginScreen";
 import HomeScreen from "./src/screens/core/HomeScreen";
+import InitialLanguageSelectionScreen from "./src/screens/core/InitialLanguageSelectionScreen";
+// MY SCRIPTS IMPORTS
+import { RootStackParamList } from "./src/navigation/types"; // Navigasyon tipleri
+import { AuthProvider, useAuth } from "./src/context/AuthContext"; // AuthContext ve useAuth hook'u
 
-// MY SCRIPTS
-import { RootStackParamList } from "./src/navigation/types";
-
+// Bir Native Stack Navigator örneği oluşturuyoruz
 const STACK = createNativeStackNavigator<RootStackParamList>();
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+/**
+ * AppNavigator bileşeni, kimlik doğrulama durumu ve kullanıcının dil seçimine göre ana navigasyon mantığını yönetir.
+ */
+const AppNavigator: React.FC = () => {
+  // useAuth hook'undan kimlik doğrulama durumu, yükleme durumu ve başlangıç rotasını alıyoruz
+  const { isLoading, initialRoute } = useAuth();
 
-  const checkAuthStatus = async () => {
-    try {
-      const userToken = await AsyncStorage.getItem("userToken");
-      if (userToken) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
-    } catch (e) {
-      console.error("Failed to load user token from AsyncStorage:", e);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    checkAuthStatus();
-
-    const unsubscribe = navigationRef?.addListener("state", () => {
-      checkAuthStatus();
-    });
-
-    return unsubscribe;
-  }, []);
-
+  // Yükleme durumu devam ederken bir ActivityIndicator göster
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading App...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Uygulama Yükleniyor...</Text>
       </View>
     );
   }
 
+  // Yükleme tamamlandığında navigatörü render et
   return (
-    <NavigationContainer ref={setNavigationRef}>
-      <STACK.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={isAuthenticated ? "HomeScreen" : "LoginScreen"}
-      >
-        <STACK.Screen name="LoginScreen" component={LoginScreen} />
-        <STACK.Screen name="RegisterScreen" component={RegisterScreen} />
-        <STACK.Screen name="HomeScreen" component={HomeScreen} />
-      </STACK.Navigator>
+    <STACK.Navigator
+      screenOptions={{ headerShown: false }} // Tüm ekranlar için başlık çubuğunu gizle
+      initialRouteName={initialRoute} // AuthContext'ten gelen dinamik olarak belirlenen başlangıç rotası
+    >
+      {/* Tanımladığımız tüm ekranlar */}
+      <STACK.Screen name="LoginScreen" component={LoginScreen} />
+      <STACK.Screen name="RegisterScreen" component={RegisterScreen} />
+      <STACK.Screen name="HomeScreen" component={HomeScreen} />
+      <STACK.Screen
+        name="InitialLanguageSelectionScreen"
+        component={InitialLanguageSelectionScreen}
+      />
+    </STACK.Navigator>
+  );
+};
+
+/**
+ * Ana App bileşeni, tüm uygulamayı NavigationContainer ve AuthProvider ile sarmalar.
+ */
+export default function App() {
+  return (
+    <NavigationContainer>
+      {/* AuthProvider, kimlik doğrulama durumunu tüm alt bileşenlere sağlar */}
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
     </NavigationContainer>
   );
 }
 
-let navigationRef: NavigationContainerRef<RootStackParamList> | null;
-
-function setNavigationRef(ref: NavigationContainerRef<RootStackParamList>) {
-  navigationRef = ref;
-}
+// Yükleme durumu için stil tanımlamaları
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#555",
+  },
+});

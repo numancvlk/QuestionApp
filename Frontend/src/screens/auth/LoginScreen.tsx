@@ -16,6 +16,7 @@ import Constants from "expo-constants";
 
 //MY SCRIPTS
 import { AppNavigationProp } from "../../navigation/types";
+import { useAuth } from "../../context/AuthContext";
 
 //STYLES
 import { loginStyles } from "../../styles/ScreenStyles/LoginScreen.style";
@@ -25,6 +26,7 @@ const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
 const LoginScreen = () => {
   const navigation = useNavigation<AppNavigationProp>();
+  const { checkAuthStatus } = useAuth();
 
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -46,12 +48,12 @@ const LoginScreen = () => {
 
       const { token, user } = response.data;
 
-      await AsyncStorage.setItem("userToken", JSON.stringify(token));
+      await AsyncStorage.setItem("userToken", token);
       await AsyncStorage.setItem("userData", JSON.stringify(user));
 
       Alert.alert("Successful", "Login successful!");
 
-      navigation.replace("HomeScreen");
+      await checkAuthStatus();
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         Alert.alert(
@@ -87,6 +89,7 @@ const LoginScreen = () => {
           autoCapitalize="none"
           keyboardType="email-address"
         />
+
         <TextInput
           style={loginStyles.input}
           placeholder="Password"
@@ -95,6 +98,7 @@ const LoginScreen = () => {
           onChangeText={setPassword}
           secureTextEntry
         />
+
         <TouchableOpacity
           style={loginStyles.button}
           onPress={handleLogin}
