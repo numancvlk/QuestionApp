@@ -1,23 +1,25 @@
 //LIBRARY
-import mongoose, { Schema, Document as MoongoseDocument } from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-export interface ILanguage extends MoongoseDocument {
+export interface ILanguage extends Document {
   name: string;
+  displayName: string;
+  iconUrl?: string;
   description?: string;
 }
 
-const LanguageSchema: Schema = new mongoose.Schema(
+const LanguageSchema: Schema = new Schema(
   {
     name: {
       type: String,
       required: true,
       unique: true,
       trim: true,
+      lowercase: true,
     },
-    description: {
-      type: String,
-      required: false,
-    },
+    displayName: { type: String, required: true, trim: true },
+    iconUrl: { type: String },
+    description: { type: String, trim: true },
   },
   { timestamps: true }
 );

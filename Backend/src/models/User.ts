@@ -9,6 +9,7 @@ export interface IUser extends MoongoseDocument {
   globalScore: number;
   dailyStreak: number;
   lastActiveDate: Date;
+  role: "user" | "admin";
   selectedLanguageId?: mongoose.Types.ObjectId | null;
   languageProgress: Map<
     string,
@@ -52,6 +53,11 @@ const UserSchema = new mongoose.Schema(
     lastActiveDate: {
       type: Date,
       default: Date.now,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
     },
     selectedLanguageId: {
       type: mongoose.Schema.Types.ObjectId,

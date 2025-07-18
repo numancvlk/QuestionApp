@@ -11,6 +11,7 @@ import errorHandler from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import languageRoutes from "./routes/languageRoutes";
+import lessonRoutes from "./routes/lessonRoutes";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/languages", languageRoutes);
+app.use("/api/lessons", lessonRoutes);
 
 app.use(errorHandler);
 
