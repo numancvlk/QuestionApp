@@ -16,7 +16,7 @@ API.interceptors.request.use(
   async (config) => {
     const token = await getToken();
     if (token) {
-      config.headers["x-auth-token"] = token;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

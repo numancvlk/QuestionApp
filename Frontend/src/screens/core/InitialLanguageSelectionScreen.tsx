@@ -20,7 +20,7 @@ import { Language } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 
 const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
-
+console.log(BASE_URL);
 const InitialLanguageSelectionScreen = () => {
   const navigation = useNavigation<AppNavigationProp>();
   const { checkAuthStatus } = useAuth();
@@ -33,7 +33,7 @@ const InitialLanguageSelectionScreen = () => {
     const fetchLanguages = async () => {
       try {
         const response = await axios.get(`${BASE_URL}/languages`);
-        setLanguages(response.data);
+        setLanguages(response.data.languages);
       } catch (error) {
         console.error("Diller getirilirken hata");
         Alert.alert("Hata", "Diller yüklenirken bir sorun oluştu.");
@@ -58,7 +58,7 @@ const InitialLanguageSelectionScreen = () => {
       await axios.post(
         `${BASE_URL}/user/select-language`,
         { languageId },
-        { headers: { "x-auth-token": token } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       Alert.alert("Başarılı", "Dil başarıyla seçildi!");

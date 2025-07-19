@@ -1,31 +1,23 @@
-// App.tsx
-
-// LIBRARY IMPORTS
+// LIBRARY
 import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// SCREEN IMPORTS
+// SCREEN
 import RegisterScreen from "./src/screens/auth/RegisterScreen";
 import LoginScreen from "./src/screens/auth/LoginScreen";
 import HomeScreen from "./src/screens/core/HomeScreen";
 import InitialLanguageSelectionScreen from "./src/screens/core/InitialLanguageSelectionScreen";
-// MY SCRIPTS IMPORTS
-import { RootStackParamList } from "./src/navigation/types"; // Navigasyon tipleri
-import { AuthProvider, useAuth } from "./src/context/AuthContext"; // AuthContext ve useAuth hook'u
+// MY SCRIPTS
+import { RootStackParamList } from "./src/navigation/types";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
 
-// Bir Native Stack Navigator örneği oluşturuyoruz
 const STACK = createNativeStackNavigator<RootStackParamList>();
 
-/**
- * AppNavigator bileşeni, kimlik doğrulama durumu ve kullanıcının dil seçimine göre ana navigasyon mantığını yönetir.
- */
 const AppNavigator: React.FC = () => {
-  // useAuth hook'undan kimlik doğrulama durumu, yükleme durumu ve başlangıç rotasını alıyoruz
   const { isLoading, initialRoute } = useAuth();
 
-  // Yükleme durumu devam ederken bir ActivityIndicator göster
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -35,13 +27,11 @@ const AppNavigator: React.FC = () => {
     );
   }
 
-  // Yükleme tamamlandığında navigatörü render et
   return (
     <STACK.Navigator
-      screenOptions={{ headerShown: false }} // Tüm ekranlar için başlık çubuğunu gizle
-      initialRouteName={initialRoute} // AuthContext'ten gelen dinamik olarak belirlenen başlangıç rotası
+      screenOptions={{ headerShown: false }}
+      initialRouteName={initialRoute}
     >
-      {/* Tanımladığımız tüm ekranlar */}
       <STACK.Screen name="LoginScreen" component={LoginScreen} />
       <STACK.Screen name="RegisterScreen" component={RegisterScreen} />
       <STACK.Screen name="HomeScreen" component={HomeScreen} />
@@ -53,13 +43,9 @@ const AppNavigator: React.FC = () => {
   );
 };
 
-/**
- * Ana App bileşeni, tüm uygulamayı NavigationContainer ve AuthProvider ile sarmalar.
- */
 export default function App() {
   return (
     <NavigationContainer>
-      {/* AuthProvider, kimlik doğrulama durumunu tüm alt bileşenlere sağlar */}
       <AuthProvider>
         <AppNavigator />
       </AuthProvider>
@@ -67,7 +53,6 @@ export default function App() {
   );
 }
 
-// Yükleme durumu için stil tanımlamaları
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
