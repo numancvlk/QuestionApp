@@ -8,10 +8,15 @@ export type RootStackParamList = {
   HomeScreen: undefined;
   InitialLanguageSelectionScreen: undefined;
   LearningPathScreen: { selectedLanguageId: string };
+  LessonDetailScreen: { lessonId: string };
 };
 
 export type AppNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export type LearningPathScreenRouteProp = RouteProp<
   RootStackParamList,
   "LearningPathScreen"
+>;
+export type LessonDetailScreenRouteProp = RouteProp<
+  RootStackParamList,
+  "LessonDetailScreen"
 >;

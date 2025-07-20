@@ -37,6 +37,28 @@ export const getLessonsByLanguage = async (
   }
 };
 
+export const getLessonById = async (req: Request, res: Response) => {
+  try {
+    const { lessonId } = req.params;
+    const lesson = await Lesson.findById(lessonId);
+
+    if (!lesson) {
+      return res
+        .status(404)
+        .json({ message: "Ders bulunamadı.", success: false });
+    }
+    res.status(200).json({ success: true, lesson });
+  } catch (error: any) {
+    console.error("Ders detayı getirilirken hata:", error);
+    if (error.name === "CastError") {
+      return res
+        .status(400)
+        .json({ message: "Geçersiz ders ID formatı.", success: false });
+    }
+    res.status(500).json({ message: "Sunucu hatası", success: false });
+  }
+};
+
 export const createLesson = async (
   req: Request,
   res: Response,

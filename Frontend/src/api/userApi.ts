@@ -119,10 +119,29 @@ export const getLessonsByLanguage = async (
   languageId: string
 ): Promise<Lesson[]> => {
   try {
-    const response = await API.get(`/lessons/${languageId}`);
+    const response = await API.get(`/lessons/by-language/${languageId}`);
     return response.data.lessons;
   } catch (error: any) {
     console.error("API Call Error: getLessonsByLanguage", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw error;
+  }
+};
+
+export const getLessonById = async (lessonId: string): Promise<Lesson> => {
+  try {
+    const response = await API.get(`/lessons/${lessonId}`);
+    return response.data.lesson;
+  } catch (error: any) {
+    console.error("API Call Error: getLessonById", error);
     if (error.response) {
       console.error("Response data:", error.response.data);
       console.error("Response status:", error.response.status);

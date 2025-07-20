@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
@@ -62,6 +63,10 @@ const LearningPathScreen: React.FC = () => {
     fetchLessons();
   }, [selectedLanguageId, navigation]);
 
+  const handleLessonPress = (lessonId: string) => {
+    navigation.navigate("LessonDetailScreen", { lessonId });
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -98,12 +103,15 @@ const LearningPathScreen: React.FC = () => {
         data={lessons}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <View style={styles.lessonItem}>
+          <TouchableOpacity
+            style={styles.lessonItem}
+            onPress={() => handleLessonPress(item._id)}
+          >
             <Text style={styles.lessonTitle}>
               {item.order}. {item.title}
             </Text>
             <Text style={styles.lessonDescription}>{item.description}</Text>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>

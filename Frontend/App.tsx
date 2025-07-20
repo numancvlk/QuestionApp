@@ -15,6 +15,7 @@ import RegisterScreen from "./src/screens/auth/RegisterScreen";
 import HomeScreen from "./src/screens/core/HomeScreen";
 import InitialLanguageSelectionScreen from "./src/screens/core/InitialLanguageSelectionScreen";
 import LearningPathScreen from "./src/screens/core/LearningPathScreen";
+import LessonDetailScreen from "./src/screens/core/LessonDetailScreen";
 
 const STACK = createNativeStackNavigator<RootStackParamList>();
 
@@ -49,6 +50,7 @@ const AppNavigator: React.FC = () => {
           initialRoute === "LearningPathScreen" ? learningPathParams : undefined
         }
       />
+      <STACK.Screen name="LessonDetailScreen" component={LessonDetailScreen} />
     </STACK.Navigator>
   );
 };
