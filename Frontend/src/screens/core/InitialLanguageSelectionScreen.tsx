@@ -1,44 +1,42 @@
 //LIBRARY
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AppNavigationProp } from "../../navigation/types";
-import axios from "axios";
-import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 //MY SCRIPTS
-import { Language } from "../../types";
 import { useAuth } from "../../context/AuthContext";
+import { selectLanguage, getLanguages } from "../../api/userApi";
+import { Language as LanguageType } from "../../types";
 
-const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
-console.log(BASE_URL);
-const InitialLanguageSelectionScreen = () => {
+const InitialLanguageSelectionScreen: React.FC = () => {
   const navigation = useNavigation<AppNavigationProp>();
   const { checkAuthStatus } = useAuth();
 
-  const [languages, setLanguages] = useState<Language[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectingLanguage, setSelectingLanguage] = useState(false);
+  const [languages, setLanguages] = useState<LanguageType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLanguages = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/languages`);
-        setLanguages(response.data.languages);
-      } catch (error) {
-        console.error("Diller getirilirken hata");
-        Alert.alert("Hata", "Diller yüklenirken bir sorun oluştu.");
+        setIsLoading(true);
+        setError(null);
+        const fetchedLanguages = await getLanguages();
+        setLanguages(fetchedLanguages);
+      } catch (err: any) {
+        console.error("Diller yüklenirken hata oluştu:", err);
+        setError("Diller yüklenirken bir sorun oluştu.");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -46,43 +44,55 @@ const InitialLanguageSelectionScreen = () => {
   }, []);
 
   const handleLanguageSelect = async (languageId: string) => {
-    setSelectingLanguage(true);
     try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        Alert.alert("Hata", "Giriş yapılmamış. Lütfen tekrar giriş yapın.");
-        navigation.navigate("LoginScreen");
-        return;
-      }
+      setIsLoading(true);
+      const updatedUser = await selectLanguage(languageId);
 
-      await axios.post(
-        `${BASE_URL}/user/select-language`,
-        { languageId },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await checkAuthStatus();
+
+      Alert.alert(
+        "Başarılı",
+        `${updatedUser.username} için dil başarıyla seçildi!`
       );
 
-      Alert.alert("Başarılı", "Dil başarıyla seçildi!");
-      await checkAuthStatus();
-    } catch (error) {
-      console.error("Dil seçimi kaydedilirken hata");
-      Alert.alert("Hata", "Dil seçimi kaydedilirken bir sorun oluştu.");
+      navigation.replace("LearningPathScreen", {
+        selectedLanguageId: languageId,
+      });
+    } catch (error: any) {
+      console.error(
+        "Dil seçimi kaydedilirken hata oluştu:",
+        error.response?.data?.message || error.message
+      );
+      Alert.alert(
+        "Hata",
+        error.response?.data?.message ||
+          "Dil seçimi kaydedilirken bir sorun oluştu."
+      );
     } finally {
-      setSelectingLanguage(false);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Diller Yükleniyor...</Text>
+        <Text style={styles.loadingText}>Diller Yükleniyor...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lütfen Bir Dil Seçin</Text>
+      <Text style={styles.header}>Bir Dil Seçin</Text>
       <FlatList
         data={languages}
         keyExtractor={(item) => item._id}
@@ -90,64 +100,76 @@ const InitialLanguageSelectionScreen = () => {
           <TouchableOpacity
             style={styles.languageItem}
             onPress={() => handleLanguageSelect(item._id)}
-            disabled={selectingLanguage}
           >
-            <Text style={styles.languageName}>{item.name}</Text>
+            <Text style={styles.languageName}>
+              {item.displayName || item.name}
+            </Text>
           </TouchableOpacity>
         )}
+        contentContainerStyle={styles.listContentContainer}
       />
-      {selectingLanguage && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.overlayText}>Dil Seçiliyor...</Text>
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  centered: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f5f5f5",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#555",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16,
     textAlign: "center",
+    marginHorizontal: 20,
+  },
+  container: {
+    flex: 1,
+    paddingTop: 80,
+    paddingHorizontal: 20,
+    backgroundColor: "#f0f0f0",
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  listContentContainer: {
+    paddingBottom: 20,
   },
   languageItem: {
     backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   languageName: {
-    fontSize: 18,
-    fontWeight: "500",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  overlayText: {
-    color: "#fff",
-    marginTop: 10,
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#444",
   },
 });
 

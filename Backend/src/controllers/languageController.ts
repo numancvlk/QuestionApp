@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 
 //MY SCRIPTS
 import Language from "../models/Language";
+import Lesson from "../models/Lesson";
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -33,9 +34,24 @@ export const getLearningPath = async (
   next: NextFunction
 ) => {
   const { languageId } = req.params;
+
   try {
+    const lessons = await Lesson.find({ language: languageId }).sort({
+      order: 1,
+    });
+
+    if (!lessons || lessons.length === 0) {
+      return res.status(200).json({
+        success: true,
+        lessons: [],
+        message: "Bu dil için henüz ders bulunamadı.",
+      });
+    }
+
     res.status(200).json({
-      message: `Learning path for language ${languageId} (placeholder).`,
+      success: true,
+      lessons,
+      message: `Learning path for language ${languageId} retrieved successfully.`,
     });
   } catch (error) {
     console.error("Öğrenme yolunu getirirken hata:", error);

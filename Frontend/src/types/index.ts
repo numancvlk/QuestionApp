@@ -21,5 +21,18 @@ export interface User {
 export interface Language {
   _id: string;
   name: string;
+  displayName?: string;
+  iconUrl?: string;
   description?: string;
+}
+
+export interface Lesson {
+  _id: string;
+  title: string;
+  description?: string;
+  language: string;
+  order: number;
+  content?: string;
+  createdAt: string;
+  updatedAt: string;
 }

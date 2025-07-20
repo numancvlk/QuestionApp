@@ -1,24 +1,27 @@
-// LIBRARY
+//LIBRARY
 import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
 
-// SCREEN
-import RegisterScreen from "./src/screens/auth/RegisterScreen";
-import LoginScreen from "./src/screens/auth/LoginScreen";
-import HomeScreen from "./src/screens/core/HomeScreen";
-import InitialLanguageSelectionScreen from "./src/screens/core/InitialLanguageSelectionScreen";
-// MY SCRIPTS
+//MY SCRIPTS
 import { RootStackParamList } from "./src/navigation/types";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+
+// Screens
+import LoginScreen from "./src/screens/auth/LoginScreen";
+import RegisterScreen from "./src/screens/auth/RegisterScreen";
+import HomeScreen from "./src/screens/core/HomeScreen";
+import InitialLanguageSelectionScreen from "./src/screens/core/InitialLanguageSelectionScreen";
+import LearningPathScreen from "./src/screens/core/LearningPathScreen";
 
 const STACK = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
-  const { isLoading, initialRoute } = useAuth();
+  const { isLoading, initialRoute, learningPathParams } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || initialRoute === undefined) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -39,6 +42,13 @@ const AppNavigator: React.FC = () => {
         name="InitialLanguageSelectionScreen"
         component={InitialLanguageSelectionScreen}
       />
+      <STACK.Screen
+        name="LearningPathScreen"
+        component={LearningPathScreen}
+        initialParams={
+          initialRoute === "LearningPathScreen" ? learningPathParams : undefined
+        }
+      />
     </STACK.Navigator>
   );
 };
@@ -47,6 +57,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <AuthProvider>
+        <StatusBar style="auto" />
         <AppNavigator />
       </AuthProvider>
     </NavigationContainer>

@@ -1,10 +1,11 @@
 //LIBRARY
 import axios from "axios";
 import Constants from "expo-constants";
+import { Alert } from "react-native";
 
 //MY SCRIPTS
-import { User } from "../types";
-import { getToken } from "../utils/auth";
+import { User, Language, Lesson } from "../types";
+import { getToken, removeToken } from "../utils/auth";
 
 const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
@@ -25,12 +26,32 @@ API.interceptors.request.use(
   }
 );
 
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      await removeToken();
+      Alert.alert("Oturum Süresi Doldu", "Lütfen tekrar giriş yapın.");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const getUserProfile = async (): Promise<User> => {
   try {
     const response = await API.get("/user/profile");
     return response.data.user;
-  } catch (error) {
-    console.error("Error fetching user profile");
+  } catch (error: any) {
+    console.error("API Call Error: getUserProfile", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
     throw error;
   }
 };
@@ -39,8 +60,97 @@ export const selectLanguage = async (languageId: string): Promise<User> => {
   try {
     const response = await API.post("/user/select-language", { languageId });
     return response.data.user;
-  } catch (error) {
-    console.error("Error saving language selection");
+  } catch (error: any) {
+    console.error("API Call Error: selectLanguage", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw error;
+  }
+};
+
+export const registerUser = async (userData: any): Promise<any> => {
+  try {
+    const response = await API.post("/auth/register", userData);
+    return response.data;
+  } catch (error: any) {
+    console.error("API Call Error: registerUser", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw error;
+  }
+};
+
+export const loginUser = async (
+  credentials: any
+): Promise<{ token: string; user: User }> => {
+  try {
+    const response = await API.post("/auth/login", credentials);
+    return response.data;
+  } catch (error: any) {
+    console.error("API Call Error: loginUser", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw error;
+  }
+};
+
+export const getLessonsByLanguage = async (
+  languageId: string
+): Promise<Lesson[]> => {
+  try {
+    const response = await API.get(`/lessons/${languageId}`);
+    return response.data.lessons;
+  } catch (error: any) {
+    console.error("API Call Error: getLessonsByLanguage", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw error;
+  }
+};
+
+export const getLanguages = async (): Promise<Language[]> => {
+  try {
+    const response = await API.get("/languages");
+    return response.data.languages;
+  } catch (error: any) {
+    console.error("API Call Error: getLanguages", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request made but no response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
     throw error;
   }
 };
