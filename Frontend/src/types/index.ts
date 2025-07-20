@@ -1,16 +1,18 @@
+type ObjectId = string;
+
 export interface User {
-  _id: string;
+  _id: ObjectId;
   username: string;
   email: string;
-  passwordHash: string;
   globalScore: number;
   dailyStreak: number;
-  lastActiveDate: Date;
-  selectedLanguageId?: string | null;
+  lastActiveDate: string;
+  role: "user" | "admin";
+  selectedLanguageId?: ObjectId | null;
   languageProgress: {
     [key: string]: {
-      completedTestIds: string[];
-      currentMapNodeId: string | null;
+      completedLessonIds: ObjectId[];
+      lastVisitedLessonId: ObjectId | null;
     };
   };
   achievements: string[];
@@ -19,17 +21,26 @@ export interface User {
 }
 
 export interface Language {
-  _id: string;
+  _id: ObjectId;
   name: string;
   displayName?: string;
   iconUrl?: string;
   description?: string;
+  code?: string;
+  flagEmoji?: string;
+  isActive?: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BaseExercise {
+  _id?: ObjectId;
   type: "text" | "multipleChoice" | "fillInTheBlanks";
   question: string;
-  correctAnswer: string;
+  correctAnswer: string | string[];
+  explanation?: string;
+  points: number;
 }
 
 export interface TextExercise extends BaseExercise {
@@ -51,14 +62,37 @@ export type Exercise =
   | FillInTheBlanksExercise;
 
 export interface Lesson {
-  _id: string;
+  _id: ObjectId;
   title: string;
   description?: string;
-  language: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  language: ObjectId;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
   order: number;
   content?: string;
   exercises?: Exercise[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  token?: string;
+  data?: T;
+}
+
+export interface UserProfileResponse {
+  success: boolean;
+  message?: string;
+  user: User;
+}
+
+export interface LessonsResponse {
+  success: boolean;
+  lessons: Lesson[];
+}
+
+export interface LessonResponse {
+  success: boolean;
+  lesson: Lesson;
 }

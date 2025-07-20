@@ -37,6 +37,7 @@ API.interceptors.response.use(
   }
 );
 
+// Oturum açmış olan kullanıcının profil bilgileri
 export const getUserProfile = async (): Promise<User> => {
   try {
     const response = await API.get("/user/profile");
@@ -56,6 +57,7 @@ export const getUserProfile = async (): Promise<User> => {
   }
 };
 
+//Kullanıcının öğrenmek istediği dili backend'de kaydeder
 export const selectLanguage = async (languageId: string): Promise<User> => {
   try {
     const response = await API.post("/user/select-language", { languageId });
@@ -75,6 +77,7 @@ export const selectLanguage = async (languageId: string): Promise<User> => {
   }
 };
 
+//kullanıcı hesabı oluşturmak için kullanılır.
 export const registerUser = async (userData: any): Promise<any> => {
   try {
     const response = await API.post("/auth/register", userData);
@@ -94,6 +97,7 @@ export const registerUser = async (userData: any): Promise<any> => {
   }
 };
 
+//LOGİN İŞLEMLERİ İÇİN
 export const loginUser = async (
   credentials: any
 ): Promise<{ token: string; user: User }> => {
@@ -115,6 +119,7 @@ export const loginUser = async (
   }
 };
 
+//Belirli bir dil ID'sine ait olan tüm dersleri çeker
 export const getLessonsByLanguage = async (
   languageId: string
 ): Promise<Lesson[]> => {
@@ -136,6 +141,7 @@ export const getLessonsByLanguage = async (
   }
 };
 
+//Belirli bir dersin tekil detaylarını (başlık, açıklama, egzersizler vb.) backend'den çeker.
 export const getLessonById = async (lessonId: string): Promise<Lesson> => {
   try {
     const response = await API.get(`/lessons/${lessonId}`);
@@ -155,6 +161,7 @@ export const getLessonById = async (lessonId: string): Promise<Lesson> => {
   }
 };
 
+//Uygulamada mevcut olan tüm dillerin listesini çeker
 export const getLanguages = async (): Promise<Language[]> => {
   try {
     const response = await API.get("/languages");

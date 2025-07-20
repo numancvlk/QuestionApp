@@ -22,8 +22,7 @@ import { getLessonsByLanguage } from "../../api/userApi";
 const LearningPathScreen: React.FC = () => {
   const route = useRoute<LearningPathScreenRouteProp>();
   const navigation = useNavigation<AppNavigationProp>();
-
-  const selectedLanguageId = route.params?.selectedLanguageId || null;
+  const { selectedLanguageId } = route.params;
 
   const [lessons, setLessons] = useState<LessonType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +63,10 @@ const LearningPathScreen: React.FC = () => {
   }, [selectedLanguageId, navigation]);
 
   const handleLessonPress = (lessonId: string) => {
-    navigation.navigate("LessonDetailScreen", { lessonId });
+    navigation.navigate("LessonDetailScreen", {
+      lessonId: lessonId,
+      selectedLanguageId: selectedLanguageId,
+    });
   };
 
   if (isLoading) {

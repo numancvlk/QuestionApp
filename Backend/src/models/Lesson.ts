@@ -7,6 +7,7 @@ export interface IExercise {
   options?: string[];
   correctAnswer?: string | string[];
   explanation?: string;
+  points: number;
 }
 
 export interface ILesson extends Document {
@@ -31,6 +32,7 @@ const ExerciseSchema: Schema = new Schema(
     options: [{ type: String }],
     correctAnswer: Schema.Types.Mixed,
     explanation: { type: String },
+    points: { type: Number, required: true, default: 10 },
   },
   { _id: true }
 );

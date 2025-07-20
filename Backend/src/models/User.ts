@@ -1,8 +1,13 @@
 //LIBRARY
-import mongoose, { Document as MoongoseDocument } from "mongoose";
+import mongoose, { Document as MongooseDocument, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 
-export interface IUser extends MoongoseDocument {
+interface ILanguageProgressValue {
+  completedLessonIds: mongoose.Types.ObjectId[];
+  lastVisitedLessonId?: mongoose.Types.ObjectId | null;
+}
+
+export interface IUser extends MongooseDocument {
   username: string;
   email: string;
   passwordHash: string;
@@ -13,7 +18,10 @@ export interface IUser extends MoongoseDocument {
   selectedLanguageId?: mongoose.Types.ObjectId | null;
   languageProgress: Map<
     string,
-    { completedTestIds: string[]; currentMapNodeId: string }
+    {
+      completedLessonIds: mongoose.Types.ObjectId[];
+      lastVisitedLessonId?: mongoose.Types.ObjectId | null;
+    }
   >;
   achievements: string[];
   comparePassword: (candidatePassword: string) => Promise<boolean>;
@@ -68,12 +76,13 @@ const UserSchema = new mongoose.Schema(
       type: Map,
       of: new mongoose.Schema(
         {
-          completedTestIds: {
-            type: [String],
+          completedLessonIds: {
+            type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lesson" }],
             default: [],
           },
-          currentMapNodeId: {
-            type: String,
+          lastVisitedLessonId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Lesson",
             default: null,
           },
         },
@@ -93,9 +102,7 @@ UserSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) {
     return next();
   }
-
   const salt = await bcrypt.genSalt(10);
-
   this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
   next();
 });
