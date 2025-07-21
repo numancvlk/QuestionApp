@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import React, { useState } from "react";
 import {
   View,
@@ -10,19 +10,16 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 
-//MY SCRIPTS
+// MY SCRIPTS
 import { AppNavigationProp } from "../../navigation/types";
 import { useAuth } from "../../context/AuthContext";
+import { loginUser } from "../../api/userApi";
 
-//STYLES
+// STYLES
 import { loginStyles } from "../../styles/ScreenStyles/LoginScreen.style";
 import { Colors } from "../../styles/GlobalStyles/colors";
-
-const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
 const LoginScreen = () => {
   const navigation = useNavigation<AppNavigationProp>();
@@ -41,12 +38,7 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${BASE_URL}/auth/login`, {
-        emailOrUsername,
-        password,
-      });
-
-      const { token, user } = response.data;
+      const { token, user } = await loginUser({ emailOrUsername, password });
 
       await AsyncStorage.setItem("userToken", token);
       await AsyncStorage.setItem("userData", JSON.stringify(user));
@@ -54,15 +46,10 @@ const LoginScreen = () => {
       Alert.alert("Successful", "Login successful!");
 
       await checkAuthStatus();
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        Alert.alert(
-          "Login Error",
-          error.response.data.message || "An error occurred."
-        );
-      } else {
-        Alert.alert("Error", "There was a problem while logging in.");
-      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "An error occurred during login.";
+      Alert.alert("Login Error", errorMessage);
     } finally {
       setLoading(false);
     }

@@ -10,11 +10,10 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
-import Constants from "expo-constants";
 
 // MY SCRIPTS
 import { AppNavigationProp } from "../../navigation/types";
+import { registerUser } from "../../api/userApi";
 
 // STYLES
 import { registerStyles } from "../../styles/ScreenStyles/RegisterScreen.style";
@@ -28,31 +27,15 @@ const RegisterScreen = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
-
-  useEffect(() => {
-    if (!BASE_URL) {
-      Alert.alert(
-        "Error",
-        "API URL is not defined! Please check your app.config.js and .env file."
-      );
-    }
-  }, [BASE_URL]);
-
   const handleRegister = async () => {
     if (!username || !email || !password) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
 
-    if (!BASE_URL) {
-      Alert.alert("Error", "API URL configuration is missing.");
-      return;
-    }
-
     setLoading(true);
     try {
-      const response = await axios.post(`${BASE_URL}/auth/register`, {
+      await registerUser({
         username,
         email,
         password,
@@ -61,16 +44,11 @@ const RegisterScreen = () => {
       Alert.alert("Success", "Registration successful! You can now log in.");
 
       navigation.replace("LoginScreen");
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        Alert.alert(
-          "Registration Error",
-          error.response.data.message ||
-            "An error occurred during registration."
-        );
-      } else {
-        Alert.alert("Error", "There was a problem during registration.");
-      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "An error occurred during registration.";
+      Alert.alert("Registration Error", errorMessage);
     } finally {
       setLoading(false);
     }

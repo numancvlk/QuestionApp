@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
@@ -16,6 +15,11 @@ import { AppNavigationProp } from "../../navigation/types";
 import { useAuth } from "../../context/AuthContext";
 import { selectLanguage, getLanguages } from "../../api/userApi";
 import { Language as LanguageType } from "../../types";
+
+//STYLES
+import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
+import { Colors } from "../../styles/GlobalStyles/colors";
+import { initialLanguageSelectionStyles } from "../../styles/ScreenStyles/İnitialLanguageSelectionScreen.style";
 
 const InitialLanguageSelectionScreen: React.FC = () => {
   const navigation = useNavigation<AppNavigationProp>();
@@ -75,102 +79,45 @@ const InitialLanguageSelectionScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.loadingText}>Diller Yükleniyor...</Text>
+      <View style={globalStyles.centeredContainer}>
+        <ActivityIndicator size="large" color={Colors.accentPrimary} />
+        <Text style={globalStyles.bodyText}>Diller Yükleniyor...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={globalStyles.centeredContainer}>
+        <Text style={globalStyles.bodyText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Bir Dil Seçin</Text>
+    <View style={initialLanguageSelectionStyles.container}>
+      <Text style={initialLanguageSelectionStyles.header}>
+        HANGİ DİLİ ÖĞRENMEK İSTİYORSUN?
+      </Text>
       <FlatList
         data={languages}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.languageItem}
+            style={initialLanguageSelectionStyles.languageItem}
             onPress={() => handleLanguageSelect(item._id)}
           >
-            <Text style={styles.languageName}>
+            <Text style={initialLanguageSelectionStyles.languageName}>
               {item.displayName || item.name}
             </Text>
           </TouchableOpacity>
         )}
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={
+          initialLanguageSelectionStyles.listContentContainer
+        }
       />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#555",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 16,
-    textAlign: "center",
-    marginHorizontal: 20,
-  },
-  container: {
-    flex: 1,
-    paddingTop: 80,
-    paddingHorizontal: 20,
-    backgroundColor: "#f0f0f0",
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  listContentContainer: {
-    paddingBottom: 20,
-  },
-  languageItem: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  languageName: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#444",
-  },
-});
 
 export default InitialLanguageSelectionScreen;

@@ -1,66 +1,97 @@
-//LIBRARY
-import React, { useEffect, useState } from "react";
+// LIBRARY
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  FlatList,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
+  Alert,
+  ScrollView,
 } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 
-//MY SCRIPTS
+// MY SCRIPTS
+import { Lesson } from "../../types";
 import {
+  RootStackParamList,
   LearningPathScreenRouteProp,
-  AppNavigationProp,
 } from "../../navigation/types";
-import { Lesson as LessonType } from "../../types";
-import { getLessonsByLanguage } from "../../api/userApi";
+import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../context/AuthContext";
+
+// STYLES
+import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
+import { Colors } from "../../styles/GlobalStyles/colors";
+import { learningPathStyles } from "../../styles/ScreenStyles/LearningPathScreen.style";
 
 const LearningPathScreen: React.FC = () => {
   const route = useRoute<LearningPathScreenRouteProp>();
-  const navigation = useNavigation<AppNavigationProp>();
+  const navigation =
+    useNavigation<
+      StackNavigationProp<RootStackParamList, "LearningPathScreen">
+    >();
+  const { logout } = useAuth();
+
   const { selectedLanguageId } = route.params;
 
-  const [lessons, setLessons] = useState<LessonType[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  console.log(selectedLanguageId);
-  useEffect(() => {
-    if (!selectedLanguageId) {
-      setError("Öğrenilecek dil seçilmedi veya geçersiz bir dil ID'si alındı.");
-      setIsLoading(false);
-      Alert.alert(
-        "Hata",
-        "Öğrenilecek dil bulunamadı. Lütfen bir dil seçmek için geri dönün.",
-        [
-          {
-            text: "Tamam",
-            onPress: () => navigation.replace("InitialLanguageSelectionScreen"),
-          },
-        ]
-      );
-      return;
-    }
 
+  useEffect(() => {
     const fetchLessons = async () => {
+      if (!selectedLanguageId) {
+        setError("Yönlendirme hatası: Geçersiz dil seçimi.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        setIsLoading(true);
+        const response = await axiosInstance.get(
+          `/lessons/by-language/${selectedLanguageId}`
+        );
+        setLessons(response.data.lessons);
         setError(null);
-        const fetchedLessons = await getLessonsByLanguage(selectedLanguageId);
-        setLessons(fetchedLessons);
       } catch (err: any) {
         console.error("Dersler yüklenirken hata oluştu:", err);
-        setError("Dersler yüklenirken bir sorun oluştu.");
+        setError(err.response?.data?.message || "Dersler yüklenemedi.");
+        Alert.alert(
+          "Hata",
+          err.response?.data?.message || "Dersleri alırken bir sorun oluştu."
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchLessons();
-  }, [selectedLanguageId, navigation]);
+  }, [selectedLanguageId]);
+
+  const groupedLessons = useMemo(() => {
+    const groups: { [key: string]: Lesson[] } = {
+      BEGINNER: [],
+      INTERMEDIATE: [],
+      ADVANCED: [],
+      EXPERT: [],
+    };
+
+    lessons.forEach((lesson) => {
+      if (groups[lesson.level]) {
+        groups[lesson.level].push(lesson);
+      } else {
+        console.warn(
+          `Bilinmeyen ders seviyesi: ${lesson.level} for lesson: ${lesson.title}`
+        );
+      }
+    });
+
+    Object.values(groups).forEach((group) => {
+      group.sort((a, b) => a.order - b.order);
+    });
+
+    return groups;
+  }, [lessons]);
 
   const handleLessonPress = (lessonId: string) => {
     navigation.navigate("LessonDetailScreen", {
@@ -69,27 +100,48 @@ const LearningPathScreen: React.FC = () => {
     });
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Çıkış Yap",
+      "Hesabınızdan çıkış yapmak istediğinizden emin misiniz?",
+      [
+        {
+          text: "İptal",
+          style: "cancel",
+        },
+        {
+          text: "Evet",
+          onPress: async () => {
+            await logout();
+            navigation.replace("LoginScreen");
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Dersler Yükleniyor...</Text>
+      <View style={globalStyles.centeredContainer}>
+        <ActivityIndicator size="large" color={Colors.accentPrimary} />
+        <Text style={globalStyles.bodyText}>Dersler Yükleniyor...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={globalStyles.centeredContainer}>
+        <Text style={globalStyles.bodyText}>{error}</Text>
       </View>
     );
   }
 
   if (!selectedLanguageId) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>
+      <View style={globalStyles.centeredContainer}>
+        <Text style={globalStyles.bodyText}>
           Yönlendirme hatası: Geçersiz dil seçimi.
         </Text>
       </View>
@@ -97,70 +149,55 @@ const LearningPathScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>
-        Öğrenme Yolu (Dil ID: {selectedLanguageId})
-      </Text>
-      <FlatList
-        data={lessons}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.lessonItem}
-            onPress={() => handleLessonPress(item._id)}
-          >
-            <Text style={styles.lessonTitle}>
-              {item.order}. {item.title}
+    <View style={globalStyles.appContainer}>
+      <TouchableOpacity
+        onPress={handleLogout}
+        style={learningPathStyles.logoutButton}
+      >
+        <Text style={learningPathStyles.logoutButtonText}>Çıkış</Text>
+      </TouchableOpacity>
+
+      <ScrollView contentContainerStyle={learningPathStyles.scrollViewContent}>
+        <Text style={learningPathStyles.screenTitle}>Öğrenme Yolu</Text>
+
+        {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
+          <View key={level} style={learningPathStyles.levelSection}>
+            <Text style={learningPathStyles.levelHeader}>
+              {level.charAt(0).toUpperCase() + level.slice(1).toLowerCase()}
             </Text>
-            <Text style={styles.lessonDescription}>{item.description}</Text>
-          </TouchableOpacity>
-        )}
-      />
+            {groupedLessons[level as keyof typeof groupedLessons]?.length >
+            0 ? (
+              groupedLessons[level as keyof typeof groupedLessons].map(
+                (item) => (
+                  <TouchableOpacity
+                    key={item._id.toString()}
+                    style={learningPathStyles.lessonItem}
+                    onPress={() => handleLessonPress(item._id.toString())}
+                  >
+                    <Text style={learningPathStyles.lessonOrder}>
+                      {item.order}.
+                    </Text>
+                    <View style={learningPathStyles.lessonContent}>
+                      <Text style={learningPathStyles.lessonTitle}>
+                        {item.title}
+                      </Text>
+                      <Text style={learningPathStyles.lessonDescription}>
+                        {item.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )
+              )
+            ) : (
+              <Text style={learningPathStyles.noLessonsText}>
+                Bu seviye için henüz ders bulunmamaktadır.
+              </Text>
+            )}
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    marginTop: 50,
-    backgroundColor: "#f0f0f0",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#333",
-  },
-  lessonItem: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  lessonTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#555",
-  },
-  lessonDescription: {
-    fontSize: 14,
-    color: "#777",
-    marginTop: 5,
-  },
-  errorText: {
-    color: "red",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 50,
-  },
-});
 
 export default LearningPathScreen;

@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import React, {
   createContext,
   useState,
@@ -9,14 +9,13 @@ import React, {
   useMemo,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
 import { Alert } from "react-native";
 
 //MY SCRIPTS
 import { getUserProfile, loginUser, registerUser } from "../api/userApi";
 import { removeToken } from "../utils/auth";
 import { User } from "../types";
-import { AppNavigationProp, RootStackParamList } from "../navigation/types";
+import { RootStackParamList } from "../navigation/types";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -37,8 +36,6 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const navigation = useNavigation<AppNavigationProp>();
-
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,14 +115,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await AsyncStorage.setItem("userToken", token);
         setUser(loggedInUser);
         setIsAuthenticated(true);
-
-        if (loggedInUser.selectedLanguageId) {
-          navigation.replace("LearningPathScreen", {
-            selectedLanguageId: loggedInUser.selectedLanguageId,
-          });
-        } else {
-          navigation.replace("InitialLanguageSelectionScreen");
-        }
       } catch (error: any) {
         Alert.alert(
           "Giriş Hatası",
@@ -138,38 +127,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
       }
     },
-    [navigation, setUser, setIsAuthenticated]
+    [setUser, setIsAuthenticated]
   );
 
-  const register = useCallback(
-    async (userData: any) => {
-      setIsLoading(true);
-      try {
-        await registerUser(userData);
-        Alert.alert("Başarılı", "Kayıt başarılı! Lütfen giriş yapın.");
-        navigation.navigate("LoginScreen");
-      } catch (error: any) {
-        Alert.alert(
-          "Kayıt Hatası",
-          error.response?.data?.message || "Kayıt yapılırken bir sorun oluştu."
-        );
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [navigation]
-  );
+  const register = useCallback(async (userData: any) => {
+    setIsLoading(true);
+    try {
+      await registerUser(userData);
+      Alert.alert("Başarılı", "Kayıt başarılı! Lütfen giriş yapın.");
+    } catch (error: any) {
+      Alert.alert(
+        "Kayıt Hatası",
+        error.response?.data?.message || "Kayıt yapılırken bir sorun oluştu."
+      );
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     setIsLoading(true);
-    await removeToken();
-    setIsAuthenticated(false);
-    setUser(null);
-    setInitialRoute("LoginScreen");
-    navigation.replace("LoginScreen");
-    setIsLoading(false);
-  }, [removeToken, navigation, setIsAuthenticated, setUser, setInitialRoute]);
+    try {
+      await removeToken();
+      setIsAuthenticated(false);
+      setUser(null);
+      setInitialRoute("LoginScreen");
+    } catch (error) {
+      console.error("Çıkış yapılırken hata oluştu:", error);
+      Alert.alert("Hata", "Çıkış yapılırken bir sorun oluştu.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [removeToken, setIsAuthenticated, setUser, setInitialRoute]);
 
   useEffect(() => {
     checkAuthStatus();
