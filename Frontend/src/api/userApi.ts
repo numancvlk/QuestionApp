@@ -43,16 +43,6 @@ export const getUserProfile = async (): Promise<User> => {
     const response = await API.get("/user/profile");
     return response.data.user;
   } catch (error: any) {
-    console.error("API Call Error: getUserProfile", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -63,16 +53,6 @@ export const selectLanguage = async (languageId: string): Promise<User> => {
     const response = await API.post("/user/select-language", { languageId });
     return response.data.user;
   } catch (error: any) {
-    console.error("API Call Error: selectLanguage", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -83,16 +63,6 @@ export const registerUser = async (userData: any): Promise<any> => {
     const response = await API.post("/auth/register", userData);
     return response.data;
   } catch (error: any) {
-    console.error("API Call Error: registerUser", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -105,16 +75,6 @@ export const loginUser = async (
     const response = await API.post("/auth/login", credentials);
     return response.data;
   } catch (error: any) {
-    console.error("API Call Error: loginUser", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -127,16 +87,6 @@ export const getLessonsByLanguage = async (
     const response = await API.get(`/lessons/by-language/${languageId}`);
     return response.data.lessons;
   } catch (error: any) {
-    console.error("API Call Error: getLessonsByLanguage", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -147,16 +97,6 @@ export const getLessonById = async (lessonId: string): Promise<Lesson> => {
     const response = await API.get(`/lessons/${lessonId}`);
     return response.data.lesson;
   } catch (error: any) {
-    console.error("API Call Error: getLessonById", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
@@ -167,16 +107,6 @@ export const getLanguages = async (): Promise<Language[]> => {
     const response = await API.get("/languages");
     return response.data.languages;
   } catch (error: any) {
-    console.error("API Call Error: getLanguages", error);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("Request made but no response received:", error.request);
-    } else {
-      console.error("Error setting up request:", error.message);
-    }
     throw error;
   }
 };
