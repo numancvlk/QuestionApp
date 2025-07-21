@@ -1,21 +1,47 @@
-//LIBRARY
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+// LIBRARY
 import { RouteProp } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { CompositeNavigationProp } from "@react-navigation/native";
+
+export type AppTabParamList = {
+  LearningPathScreen: { selectedLanguageId: string };
+  QuickQuizScreen: undefined;
+  TimedQuizScreen: undefined;
+  RandomQuestionScreen: undefined;
+  DailyQuestionScreen: undefined;
+  LeaderboardScreen: undefined;
+};
 
 export type RootStackParamList = {
   LoginScreen: undefined;
   RegisterScreen: undefined;
-  HomeScreen: undefined;
   InitialLanguageSelectionScreen: undefined;
-  LearningPathScreen: { selectedLanguageId: string };
   LessonDetailScreen: { lessonId: string; selectedLanguageId: string };
+  AppTabs: undefined;
 };
 
-export type AppNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+export type RootStackNavigationProp<
+  RouteName extends keyof RootStackParamList
+> = StackNavigationProp<RootStackParamList, RouteName>;
+
+export type AppTabScreenNavigationProp<
+  RouteName extends keyof AppTabParamList
+> = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabParamList, RouteName>,
+  RootStackNavigationProp<keyof RootStackParamList>
+>;
+
+export type LearningPathScreenNavigationProp =
+  AppTabScreenNavigationProp<"LearningPathScreen">;
+export type QuickQuizScreenNavigationProp =
+  AppTabScreenNavigationProp<"QuickQuizScreen">;
+
 export type LearningPathScreenRouteProp = RouteProp<
-  RootStackParamList,
+  AppTabParamList,
   "LearningPathScreen"
 >;
+
 export type LessonDetailScreenRouteProp = RouteProp<
   RootStackParamList,
   "LessonDetailScreen"

@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { AppNavigationProp } from "../../navigation/types";
+import { RootStackNavigationProp } from "../../navigation/types";
 
 //MY SCRIPTS
 import { useAuth } from "../../context/AuthContext";
@@ -17,12 +17,13 @@ import { selectLanguage, getLanguages } from "../../api/userApi";
 import { Language as LanguageType } from "../../types";
 
 //STYLES
+import { initialLanguageSelectionStyles } from "../../styles/ScreenStyles/İnitialLanguageSelectionScreen.style";
 import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
 import { Colors } from "../../styles/GlobalStyles/colors";
-import { initialLanguageSelectionStyles } from "../../styles/ScreenStyles/İnitialLanguageSelectionScreen.style";
 
 const InitialLanguageSelectionScreen: React.FC = () => {
-  const navigation = useNavigation<AppNavigationProp>();
+  const navigation =
+    useNavigation<RootStackNavigationProp<"InitialLanguageSelectionScreen">>();
   const { checkAuthStatus } = useAuth();
 
   const [languages, setLanguages] = useState<LanguageType[]>([]);
@@ -38,7 +39,9 @@ const InitialLanguageSelectionScreen: React.FC = () => {
         setLanguages(fetchedLanguages);
       } catch (err: any) {
         console.error("Diller yüklenirken hata oluştu:", err);
-        setError("Diller yüklenirken bir sorun oluştu.");
+        setError(
+          err.response?.data?.message || "Diller yüklenirken bir sorun oluştu."
+        );
       } finally {
         setIsLoading(false);
       }
@@ -59,9 +62,7 @@ const InitialLanguageSelectionScreen: React.FC = () => {
         `${updatedUser.username} için dil başarıyla seçildi!`
       );
 
-      navigation.replace("LearningPathScreen", {
-        selectedLanguageId: languageId,
-      });
+      navigation.replace("AppTabs");
     } catch (error: any) {
       console.error(
         "Dil seçimi kaydedilirken hata oluştu:",

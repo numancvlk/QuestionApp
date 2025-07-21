@@ -10,27 +10,21 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 //MY SCRIPTS
 import axiosInstance from "../../utils/axiosInstance";
 import { Lesson, Exercise, UserProfileResponse } from "../../types";
-import { RootStackParamList } from "../../navigation/types";
-
-type LessonDetailScreenRouteProp = RouteProp<
-  RootStackParamList,
-  "LessonDetailScreen"
->;
-type LessonDetailScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "LessonDetailScreen"
->;
+import {
+  RootStackNavigationProp,
+  LessonDetailScreenRouteProp,
+} from "../../navigation/types";
 
 const LessonDetailScreen: React.FC = () => {
   const route = useRoute<LessonDetailScreenRouteProp>();
-  const navigation = useNavigation<LessonDetailScreenNavigationProp>();
-  const { lessonId, selectedLanguageId } = route.params;
+  const navigation =
+    useNavigation<RootStackNavigationProp<"LessonDetailScreen">>();
+  const { lessonId } = route.params;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -361,16 +355,7 @@ const LessonDetailScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.backToPathButton}
               onPress={() => {
-                if (selectedLanguageId) {
-                  navigation.navigate("LearningPathScreen", {
-                    selectedLanguageId: selectedLanguageId,
-                  });
-                } else {
-                  Alert.alert(
-                    "Hata",
-                    "Öğrenme Yoluna geri dönmek için dil bilgisi eksik. Lütfen tekrar deneyin."
-                  );
-                }
+                navigation.replace("AppTabs");
               }}
             >
               <Text style={styles.backToPathButtonText}>

@@ -8,15 +8,11 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
+import { useNavigation } from "@react-navigation/native";
 
 // MY SCRIPTS
 import { Lesson } from "../../types";
-import {
-  RootStackParamList,
-  LearningPathScreenRouteProp,
-} from "../../navigation/types";
+import { LearningPathScreenNavigationProp } from "../../navigation/types";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
@@ -26,14 +22,10 @@ import { Colors } from "../../styles/GlobalStyles/colors";
 import { learningPathStyles } from "../../styles/ScreenStyles/LearningPathScreen.style";
 
 const LearningPathScreen: React.FC = () => {
-  const route = useRoute<LearningPathScreenRouteProp>();
-  const navigation =
-    useNavigation<
-      StackNavigationProp<RootStackParamList, "LearningPathScreen">
-    >();
-  const { logout } = useAuth();
+  const navigation = useNavigation<LearningPathScreenNavigationProp>();
+  const { logout, user } = useAuth();
 
-  const { selectedLanguageId } = route.params;
+  const selectedLanguageId = user?.selectedLanguageId;
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +58,7 @@ const LearningPathScreen: React.FC = () => {
     };
 
     fetchLessons();
-  }, [selectedLanguageId]);
+  }, [selectedLanguageId, user]);
 
   const groupedLessons = useMemo(() => {
     const groups: { [key: string]: Lesson[] } = {
@@ -94,6 +86,14 @@ const LearningPathScreen: React.FC = () => {
   }, [lessons]);
 
   const handleLessonPress = (lessonId: string) => {
+    if (!selectedLanguageId) {
+      Alert.alert(
+        "Hata",
+        "Ders detaylarını görüntülemek için seçili bir dil bulunamadı."
+      );
+      return;
+    }
+
     navigation.navigate("LessonDetailScreen", {
       lessonId: lessonId,
       selectedLanguageId: selectedLanguageId,

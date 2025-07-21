@@ -1,10 +1,10 @@
 import { View, Text } from "react-native";
 import React from "react";
 
-export default function RandomQuestionScreen() {
+export default function LeaderboardScreen() {
   return (
     <View>
-      <Text>RandomQuestionScreen</Text>
+      <Text>LeaderboardScreen</Text>
     </View>
   );
 }

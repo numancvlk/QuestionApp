@@ -12,7 +12,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 
 // MY SCRIPTS
-import { AppNavigationProp } from "../../navigation/types";
+import { RootStackNavigationProp } from "../../navigation/types";
 import { registerUser } from "../../api/userApi";
 
 // STYLES
@@ -20,7 +20,7 @@ import { registerStyles } from "../../styles/ScreenStyles/RegisterScreen.style";
 import { Colors } from "../../styles/GlobalStyles/colors";
 
 const RegisterScreen = () => {
-  const navigation = useNavigation<AppNavigationProp>();
+  const navigation = useNavigation<RootStackNavigationProp<"RegisterScreen">>();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");

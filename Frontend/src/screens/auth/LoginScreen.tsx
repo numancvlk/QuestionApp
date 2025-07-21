@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // MY SCRIPTS
-import { AppNavigationProp } from "../../navigation/types";
+import { RootStackNavigationProp } from "../../navigation/types";
 import { useAuth } from "../../context/AuthContext";
 import { loginUser } from "../../api/userApi";
 
@@ -22,7 +22,7 @@ import { loginStyles } from "../../styles/ScreenStyles/LoginScreen.style";
 import { Colors } from "../../styles/GlobalStyles/colors";
 
 const LoginScreen = () => {
-  const navigation = useNavigation<AppNavigationProp>();
+  const navigation = useNavigation<RootStackNavigationProp<"LoginScreen">>();
   const { checkAuthStatus } = useAuth();
 
   const [emailOrUsername, setEmailOrUsername] = useState("");

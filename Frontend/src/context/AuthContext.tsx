@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(true);
 
         if (currentUserData.selectedLanguageId) {
-          setInitialRoute("LearningPathScreen");
+          setInitialRoute("AppTabs");
           setLearningPathParams({
             selectedLanguageId: currentUserData.selectedLanguageId,
           });
