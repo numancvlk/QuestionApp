@@ -1,8 +1,8 @@
 //LIBRARY
-import mongoose, { Document as MongooseDocument, Schema } from "mongoose";
+import mongoose, { Document as MongooseDocument } from "mongoose";
 import bcrypt from "bcryptjs";
 
-interface ILanguageProgressValue {
+export interface ILanguageProgressValue {
   completedLessonIds: mongoose.Types.ObjectId[];
   lastVisitedLessonId?: mongoose.Types.ObjectId | null;
 }
@@ -25,6 +25,7 @@ export interface IUser extends MongooseDocument {
   >;
   achievements: string[];
   comparePassword: (candidatePassword: string) => Promise<boolean>;
+  lastDailyQuestionAnswered: Date | null;
 }
 
 const UserSchema = new mongoose.Schema(
@@ -93,6 +94,10 @@ const UserSchema = new mongoose.Schema(
     achievements: {
       type: [String],
       default: [],
+    },
+    lastDailyQuestionAnswered: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

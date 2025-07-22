@@ -1,4 +1,4 @@
-type ObjectId = string;
+export type ObjectId = string;
 
 export interface User {
   _id: ObjectId;
@@ -16,6 +16,7 @@ export interface User {
     };
   };
   achievements: string[];
+  lastDailyQuestionAnswered?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,17 +62,26 @@ export type Exercise =
   | MultipleChoiceExercise
   | FillInTheBlanksExercise;
 
+// --- Ders Tipleri ---
 export interface Lesson {
   _id: ObjectId;
   title: string;
   description?: string;
-  language: ObjectId;
+  language: Language;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
   order: number;
   content?: string;
   exercises?: Exercise[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuizQuestion {
+  _id: string;
+  question: string;
+  options: string[];
+  lessonId?: string;
+  type?: string;
 }
 
 export interface ApiResponse<T> {
@@ -95,4 +105,20 @@ export interface LessonsResponse {
 export interface LessonResponse {
   success: boolean;
   lesson: Lesson;
+}
+
+export interface RandomQuestionResponse {
+  success: boolean;
+  question: QuizQuestion;
+}
+
+export interface DailyQuestionResponse {
+  success: boolean;
+  question: QuizQuestion;
+}
+
+export interface DailyQuestionStatusResponse {
+  success: boolean;
+  hasAnsweredToday: boolean;
+  nextAttemptTime?: string;
 }

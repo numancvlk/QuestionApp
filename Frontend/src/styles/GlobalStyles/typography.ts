@@ -11,6 +11,8 @@ export const FontSizes = {
   body: 16,
   small: 14,
   xSmall: 12,
+  large: 18,
+  xxLarge: 28,
 };
 
 export const Typography = StyleSheet.create({
