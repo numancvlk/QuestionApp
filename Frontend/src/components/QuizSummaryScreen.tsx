@@ -1,5 +1,5 @@
-//LIBRARY
-import React from "react";
+// LIBRARY
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ interface QuizSummaryScreenProps {
   isScoreUpdating: boolean;
   scoreUpdateCompleted: boolean;
   onCollectPoints: () => void;
+  onPlayAgain?: () => void;
+  isTimedQuiz?: boolean;
 }
 
 const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
@@ -32,6 +34,8 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
   isScoreUpdating,
   scoreUpdateCompleted,
   onCollectPoints,
+  onPlayAgain,
+  isTimedQuiz = false,
 }) => {
   const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
   const { user } = useAuth();
@@ -50,6 +54,15 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
       navigation.replace("InitialLanguageSelectionScreen");
     }
   };
+
+  useEffect(() => {
+    if (isTimedQuiz && scoreUpdateCompleted) {
+      const timer = setTimeout(() => {
+        handleGoHomeAfterPointsCollected();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isTimedQuiz, scoreUpdateCompleted, navigation, user?.selectedLanguageId]);
 
   return (
     <View style={globalStyles.centeredContainer}>
@@ -75,19 +88,27 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
           <Text style={styles.scoreCollectedText}>
             Puanınız hesabınıza eklendi!
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                marginTop: Spacing.medium,
-                backgroundColor: Colors.accentPrimary,
-              },
-            ]}
-            onPress={handleGoHomeAfterPointsCollected}
-          >
-            <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
-          </TouchableOpacity>
+          {!isTimedQuiz && (
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                {
+                  marginTop: Spacing.medium,
+                  backgroundColor: Colors.accentPrimary,
+                },
+              ]}
+              onPress={handleGoHomeAfterPointsCollected}
+            >
+              <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
+            </TouchableOpacity>
+          )}
         </View>
+      )}
+
+      {!isTimedQuiz && onPlayAgain && (
+        <TouchableOpacity style={styles.playAgainButton} onPress={onPlayAgain}>
+          <Text style={styles.playAgainButtonText}>Tekrar Oyna</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -125,6 +146,23 @@ const styles = StyleSheet.create({
     color: Colors.accentPrimary,
     marginTop: Spacing.large,
     marginBottom: Spacing.medium,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  playAgainButton: {
+    backgroundColor: Colors.backgroundSecondary,
+    paddingVertical: Spacing.medium,
+    paddingHorizontal: Spacing.large,
+    borderRadius: Radii.medium,
+    marginTop: Spacing.small,
+    minWidth: 180,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  playAgainButtonText: {
+    color: Colors.textPrimary,
+    fontSize: FontSizes.h3,
     fontWeight: "bold",
   },
 });

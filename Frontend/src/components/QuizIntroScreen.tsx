@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import React from "react";
 import {
   View,
@@ -21,6 +21,9 @@ interface QuizIntroScreenProps {
   isLoading: boolean;
   selectedLevel: QuizLevel;
   onLevelSelect: (level: QuizLevel) => void;
+  title?: string;
+  description?: string;
+  isTimedQuiz?: boolean;
 }
 
 const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
@@ -28,34 +31,40 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
   isLoading,
   selectedLevel,
   onLevelSelect,
+  title = "Hızlı Yarışmaya Hoş Geldin!",
+  description = "Seviyeni seç ve bilgini test et.",
+  isTimedQuiz = false,
 }) => {
   return (
     <View style={globalStyles.centeredContainer}>
-      <Text style={styles.introTitle}>Hızlı Yarışmaya Hoş Geldin!</Text>
-      <Text style={styles.introDescription}>
-        Seviyeni seç ve bilgini test et.
-      </Text>
-      <View style={styles.levelSelectionContainer}>
-        {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
-          <TouchableOpacity
-            key={level}
-            style={[
-              styles.levelButton,
-              selectedLevel === level && styles.selectedLevelButton,
-            ]}
-            onPress={() => onLevelSelect(level as QuizLevel)}
-          >
-            <Text
+      <Text style={styles.introTitle}>{title}</Text>
+      <Text style={styles.introDescription}>{description}</Text>
+
+      {!isTimedQuiz && (
+        <View style={styles.levelSelectionContainer}>
+          {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
+            <TouchableOpacity
+              key={level}
               style={[
-                styles.levelButtonText,
-                selectedLevel === level && styles.selectedLevelButtonText,
+                styles.levelButton,
+                selectedLevel === level && styles.selectedLevelButton,
               ]}
+              onPress={() => onLevelSelect(level as QuizLevel)}
+              disabled={isLoading}
             >
-              {level}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.levelButtonText,
+                  selectedLevel === level && styles.selectedLevelButtonText,
+                ]}
+              >
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.startButton}
         onPress={() => onStartQuiz(selectedLevel)}
