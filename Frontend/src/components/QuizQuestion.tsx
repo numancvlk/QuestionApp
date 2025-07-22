@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import React from "react";
 import {
   View,
@@ -15,6 +15,7 @@ import { QuizQuestion } from "../types";
 import { Colors, Radii } from "../styles/GlobalStyles/colors";
 import { FontSizes } from "../styles/GlobalStyles/typography";
 import { Spacing } from "../styles/GlobalStyles/spacing";
+
 interface QuizQuestionProps {
   question: QuizQuestion;
   onAnswer: (selectedOption: string) => void;

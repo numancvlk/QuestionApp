@@ -1,5 +1,5 @@
-//LIBRARY
-import React, { useState, useCallback } from "react";
+// LIBRARY
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
-//MY SCRIPTS
+// MY SCRIPTS
 import { useAuth } from "../../context/AuthContext";
 import {
   getQuickQuizQuestions,
@@ -19,72 +19,102 @@ import {
 } from "../../api/userApi";
 import { QuizQuestion } from "../../types";
 import QuizQuestionComponent from "../../components/QuizQuestion";
-import { AppTabScreenNavigationProp } from "../../navigation/types";
+import QuizIntroScreen from "../../components/QuizIntroScreen";
+import QuizSummaryScreen from "../../components/QuizSummaryScreen";
+import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
 
-//STYLES
+// STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
 import { Spacing } from "../../styles/GlobalStyles/spacing";
 import { FontSizes } from "../../styles/GlobalStyles/typography";
 import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
 
+type QuizLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
+
 const QuickQuizScreen = () => {
   const { user, isLoading: authLoading, checkAuthStatus } = useAuth();
-  const navigation =
-    useNavigation<AppTabScreenNavigationProp<"QuickQuizScreen">>();
+  const navigation = useNavigation();
 
+  const [currentStep, setCurrentStep] = useState<
+    "intro" | "question" | "feedback" | "summary" | "noQuestions"
+  >("intro");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [isAnswerChecking, setIsAnswerChecking] = useState(false);
+  const [earnedPointsThisQuiz, setEarnedPointsThisQuiz] = useState(0);
+  const [selectedLevel, setSelectedLevel] = useState<QuizLevel>("BEGINNER");
+
+  const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
+  const [answerFeedbackText, setAnswerFeedbackText] = useState<string>("");
+  const [showFeedbackArea, setShowFeedbackArea] = useState(false);
+
+  const [isScoreUpdating, setIsScoreUpdating] = useState(false);
+  const [scoreUpdateCompleted, setScoreUpdateCompleted] = useState(false);
 
   const userLanguageId = user?.selectedLanguageId;
-  const quizLevel = "BEGINNER";
-  const fetchQuizQuestions = useCallback(async () => {
-    if (!userLanguageId) {
-      Alert.alert("Dil Seçimi Hatası", "Lütfen önce bir dil seçin.");
-      navigation.navigate("InitialLanguageSelectionScreen");
-      return;
-    }
 
-    setLoadingQuiz(true);
-    setQuizCompleted(false);
-    setScore(0);
-    setCurrentQuestionIndex(0);
-
-    try {
-      const fetchedQuestions = await getQuickQuizQuestions(
-        userLanguageId,
-        quizLevel
-      );
-      if (fetchedQuestions.length === 0) {
-        Alert.alert("Uyarı", "Bu dilde veya seviyede soru bulunamadı.");
-        setLoadingQuiz(false);
+  const fetchQuizQuestions = useCallback(
+    async (level: QuizLevel) => {
+      if (!userLanguageId) {
+        Alert.alert("Dil Seçimi Hatası", "Lütfen önce bir dil seçin.");
+        (navigation as any).navigate("InitialLanguageSelectionScreen");
         return;
       }
-      setQuestions(fetchedQuestions);
-    } catch (error) {
-      console.error("Quiz soruları çekme hatası:", error);
-      Alert.alert("Hata", "Quiz soruları yüklenirken bir sorun oluştu.");
-    } finally {
-      setLoadingQuiz(false);
-    }
-  }, [userLanguageId, navigation, quizLevel]);
+
+      setLoadingQuiz(true);
+      setQuestions([]);
+      setEarnedPointsThisQuiz(0);
+      setCurrentQuestionIndex(0);
+      setScoreUpdateCompleted(false);
+
+      try {
+        console.log(
+          `[QuickQuizScreen] Fetching questions for language: ${userLanguageId}, level: ${level}`
+        );
+        const fetchedQuestions = await getQuickQuizQuestions(
+          userLanguageId,
+          level
+        );
+        console.log(
+          `[QuickQuizScreen] Fetched ${fetchedQuestions.length} questions.`
+        );
+
+        if (fetchedQuestions.length === 0) {
+          Alert.alert(
+            "Uyarı",
+            "Bu dilde veya seviyede soru bulunamadı. Lütfen farklı bir seviye deneyin."
+          );
+          setCurrentStep("noQuestions");
+          return;
+        }
+
+        setQuestions(fetchedQuestions);
+        setCurrentStep("question");
+      } catch (error) {
+        console.error("[QuickQuizScreen] Quiz soruları çekme hatası:", error);
+        Alert.alert("Hata", "Quiz soruları yüklenirken bir sorun oluştu.");
+        setCurrentStep("intro");
+      } finally {
+        setLoadingQuiz(false);
+      }
+    },
+    [userLanguageId, navigation]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      if (!authLoading && userLanguageId) {
-        fetchQuizQuestions();
-      }
-      return () => {
-        setQuestions([]);
-        setCurrentQuestionIndex(0);
-        setQuizCompleted(false);
-        setScore(0);
-        setIsAnswerChecking(false);
-      };
-    }, [authLoading, userLanguageId, fetchQuizQuestions])
+      setCurrentStep("intro");
+      setQuestions([]);
+      setCurrentQuestionIndex(0);
+      setEarnedPointsThisQuiz(0);
+      setIsCorrectAnswer(null);
+      setAnswerFeedbackText("");
+      setShowFeedbackArea(false);
+      setIsScoreUpdating(false);
+      setScoreUpdateCompleted(false);
+
+      return () => {};
+    }, [])
   );
 
   const handleAnswer = async (selectedOption: string) => {
@@ -95,129 +125,155 @@ const QuickQuizScreen = () => {
       return;
     }
 
-    setIsAnswerChecking(true);
-
     try {
       const result = await checkQuizAnswer(currentQuestion._id, selectedOption);
 
+      setIsCorrectAnswer(result.isCorrect);
       if (result.isCorrect) {
-        setScore((prevScore) => prevScore + result.pointsEarned);
-        Alert.alert(
-          "Tebrikler!",
-          `Doğru cevap! ${result.pointsEarned} puan kazandınız.`
-        );
+        setEarnedPointsThisQuiz((prevScore) => prevScore + result.pointsEarned);
+        setAnswerFeedbackText(`Doğru! (+${result.pointsEarned} puan)`);
       } else {
-        Alert.alert(
-          "Yanlış Cevap",
-          `Maalesef doğru cevap bu değil. ${
-            result.explanation ? `Açıklama: ${result.explanation}` : ""
-          }`
-        );
+        const explanation = result.explanation
+          ? `Açıklama: ${result.explanation}`
+          : "Doğru cevap bu değil.";
+        setAnswerFeedbackText(`Yanlış. ${explanation}`);
       }
+      setShowFeedbackArea(true);
     } catch (error) {
-      console.error("Cevap kontrolü hatası:", error);
+      console.error("[QuickQuizScreen] Cevap kontrolü hatası:", error);
       Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
+      setShowFeedbackArea(false);
     } finally {
-      setIsAnswerChecking(false);
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-      } else {
-        setQuizCompleted(true);
-        Alert.alert(
-          "Quiz Tamamlandı!",
-          `Toplamda ${score} puan kazandınız. Puanlar güncelleniyor...`
-        );
-        try {
-          await updateScore(score);
-          await checkAuthStatus();
-          Alert.alert("Başarılı", "Puanınız başarıyla güncellendi!");
-        } catch (error) {
-          console.error("Global skor güncelleme hatası:", error);
-          Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
-        }
-      }
     }
   };
 
-  const currentQuestion = questions[currentQuestionIndex];
+  const handleContinueAfterFeedback = useCallback(() => {
+    setShowFeedbackArea(false);
 
-  if (authLoading || !userLanguageId || loadingQuiz) {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+    } else {
+      setCurrentStep("summary");
+    }
+  }, [currentQuestionIndex, questions.length]);
+
+  const handleCollectPoints = useCallback(async () => {
+    if (isScoreUpdating) return;
+
+    setIsScoreUpdating(true);
+    try {
+      await updateScore(earnedPointsThisQuiz);
+      await checkAuthStatus();
+      setScoreUpdateCompleted(true);
+      Alert.alert("Başarılı", "Puanınız başarıyla hesabınıza eklendi!");
+      console.log("[QuickQuizScreen] Puan başarıyla güncellendi.");
+    } catch (error) {
+      console.error("[QuickQuizScreen] Global skor güncelleme hatası:", error);
+      Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
+      setScoreUpdateCompleted(true);
+    } finally {
+      setIsScoreUpdating(false);
+    }
+  }, [earnedPointsThisQuiz, checkAuthStatus, isScoreUpdating]);
+
+  const currentQuestion = useMemo(
+    () => questions[currentQuestionIndex],
+    [questions, currentQuestionIndex]
+  );
+
+  if (authLoading || !userLanguageId) {
     return (
       <View style={globalStyles.centeredContainer}>
         <ActivityIndicator size="large" color={Colors.accentPrimary} />
         <Text style={globalStyles.bodyText}>
-          {loadingQuiz ? "Quiz Yükleniyor..." : "Yükleniyor..."}
+          {authLoading
+            ? "Kullanıcı verileri yükleniyor..."
+            : "Dil seçimi bekleniyor..."}
         </Text>
+        {!userLanguageId && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              (navigation as any).navigate("InitialLanguageSelectionScreen")
+            }
+          >
+            <Text style={styles.actionButtonText}>Dil Seç</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
-  if (quizCompleted) {
-    return (
-      <View style={globalStyles.centeredContainer}>
-        <Text style={styles.quizCompleteText}>Quiz Bitti!</Text>
-        <Text style={styles.finalScoreText}>Kazandığınız Puan: {score}</Text>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, { marginTop: Spacing.medium }]}
-          onPress={fetchQuizQuestions}
-        >
-          <Text style={styles.actionButtonText}>Tekrar Oyna</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (!currentQuestion && !loadingQuiz && !quizCompleted) {
-    return (
-      <View style={globalStyles.centeredContainer}>
-        <Text style={styles.noQuestionText}>
-          Bu seviye veya dilde soru bulunamadı.
-        </Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={fetchQuizQuestions}
-        >
-          <Text style={styles.refreshButtonText}>Tekrar Dene</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.refreshButton, { marginTop: Spacing.small }]}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.refreshButtonText}>Geri Dön</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.scoreAndProgressText}>
-        Puanınız: {user?.globalScore || 0} | Bu Quiz Puanı: {score} | Soru{" "}
-        {currentQuestionIndex + 1}/{questions.length}
-      </Text>
-      {currentQuestion && (
-        <QuizQuestionComponent
-          question={currentQuestion}
-          onAnswer={handleAnswer}
-          disableInteractions={isAnswerChecking}
+  switch (currentStep) {
+    case "intro":
+      return (
+        <QuizIntroScreen
+          selectedLevel={selectedLevel}
+          onLevelSelect={setSelectedLevel}
+          onStartQuiz={fetchQuizQuestions}
+          isLoading={loadingQuiz}
         />
-      )}
-      {isAnswerChecking && (
-        <View style={styles.checkingAnswerOverlay}>
-          <ActivityIndicator size="small" color={Colors.white} />
-          <Text style={styles.checkingAnswerText}>
-            Cevap kontrol ediliyor...
+      );
+    case "question":
+      if (!currentQuestion && !loadingQuiz) {
+        setCurrentStep("noQuestions");
+        return null;
+      }
+      return (
+        <View style={styles.container}>
+          <Text style={styles.scoreAndProgressText}>
+            Bu Quiz Puanı: {earnedPointsThisQuiz} | Soru{" "}
+            {currentQuestionIndex + 1}/{questions.length}
+          </Text>
+          {currentQuestion && (
+            <QuizQuestionComponent
+              question={currentQuestion}
+              onAnswer={handleAnswer}
+              disableInteractions={showFeedbackArea || loadingQuiz}
+              key={currentQuestionIndex}
+            />
+          )}
+
+          <QuizAnswerFeedback
+            isVisible={showFeedbackArea}
+            isCorrect={isCorrectAnswer}
+            feedbackText={answerFeedbackText}
+            onContinue={handleContinueAfterFeedback}
+          />
+        </View>
+      );
+    case "summary":
+      return (
+        <QuizSummaryScreen
+          earnedPoints={earnedPointsThisQuiz}
+          isScoreUpdating={isScoreUpdating}
+          scoreUpdateCompleted={scoreUpdateCompleted}
+          onCollectPoints={handleCollectPoints}
+        />
+      );
+    case "noQuestions":
+      return (
+        <View style={globalStyles.centeredContainer}>
+          <Text style={styles.noQuestionText}>
+            Bu seviye veya dilde soru bulunamadı.
+          </Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={() => setCurrentStep("intro")}
+          >
+            <Text style={styles.refreshButtonText}>Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    default:
+      return (
+        <View style={globalStyles.centeredContainer}>
+          <Text style={globalStyles.bodyText}>
+            Beklenmeyen bir hata oluştu.
           </Text>
         </View>
-      )}
-    </View>
-  );
+      );
+  }
 };
 
 const styles = StyleSheet.create({
@@ -227,6 +283,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.large,
     alignItems: "center",
     justifyContent: "flex-start",
+    position: "relative",
   },
   scoreAndProgressText: {
     fontSize: FontSizes.h3,
@@ -236,17 +293,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.medium,
     width: "90%",
   },
-  quizCompleteText: {
-    fontSize: FontSizes.h2,
-    fontWeight: "bold",
-    color: Colors.textPrimary,
-    marginBottom: Spacing.medium,
+  actionButton: {
+    backgroundColor: Colors.accentPrimary,
+    paddingVertical: Spacing.medium,
+    paddingHorizontal: Spacing.large,
+    borderRadius: Radii.medium,
+    marginTop: Spacing.large,
   },
-  finalScoreText: {
+  actionButtonText: {
+    color: Colors.white,
     fontSize: FontSizes.h3,
     fontWeight: "bold",
-    color: Colors.accentPrimary,
-    marginBottom: Spacing.large,
   },
   noQuestionText: {
     fontSize: FontSizes.body,
@@ -265,35 +322,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.body,
     fontWeight: "bold",
-  },
-  actionButton: {
-    backgroundColor: Colors.accentPrimary,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
-    borderRadius: Radii.medium,
-    marginTop: Spacing.large,
-  },
-  actionButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
-  },
-  checkingAnswerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-    borderRadius: Radii.large,
-  },
-  checkingAnswerText: {
-    color: Colors.white,
-    marginTop: Spacing.small,
-    fontSize: FontSizes.body,
   },
 });
 

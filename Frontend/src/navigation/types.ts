@@ -5,7 +5,7 @@ import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { CompositeNavigationProp } from "@react-navigation/native";
 
 export type AppTabParamList = {
-  LearningPathScreen: { selectedLanguageId: string };
+  LearningPathScreen: { selectedLanguageId: string | undefined };
   QuickQuizScreen: undefined;
   TimedQuizScreen: undefined;
   RandomQuestionScreen: undefined;
@@ -18,7 +18,10 @@ export type RootStackParamList = {
   RegisterScreen: undefined;
   InitialLanguageSelectionScreen: undefined;
   LessonDetailScreen: { lessonId: string; selectedLanguageId: string };
-  AppTabs: undefined;
+  AppTabs: {
+    screen: keyof AppTabParamList;
+    params?: AppTabParamList[keyof AppTabParamList];
+  };
 };
 
 export type RootStackNavigationProp<
