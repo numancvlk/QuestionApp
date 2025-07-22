@@ -1,5 +1,5 @@
 // LIBRARY
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,8 @@ import {
 //STYLES
 import { Colors, Radii } from "../styles/GlobalStyles/colors";
 import { Spacing } from "../styles/GlobalStyles/spacing";
-import { FontSizes } from "../styles/GlobalStyles/typography";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
-
+import { FontSizes } from "../styles/GlobalStyles/typography";
 //MY SCRIPTS
 import { useNavigation } from "@react-navigation/native";
 import { RootStackNavigationProp } from "../navigation/types";
@@ -27,6 +26,10 @@ interface QuizSummaryScreenProps {
   onCollectPoints: () => void;
   onPlayAgain?: () => void;
   isTimedQuiz?: boolean;
+  isRandomQuiz?: boolean;
+  correctAnswers?: number;
+  incorrectAnswers?: number;
+  totalQuestions?: number;
 }
 
 const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
@@ -36,11 +39,15 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
   onCollectPoints,
   onPlayAgain,
   isTimedQuiz = false,
+  isRandomQuiz = false,
+  correctAnswers,
+  incorrectAnswers,
+  totalQuestions,
 }) => {
   const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
   const { user } = useAuth();
 
-  const handleGoHomeAfterPointsCollected = () => {
+  const handleGoHomeAfterPointsCollected = useCallback(() => {
     if (user?.selectedLanguageId) {
       navigation.replace("AppTabs", {
         screen: "LearningPathScreen",
@@ -53,16 +60,21 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
       );
       navigation.replace("InitialLanguageSelectionScreen");
     }
-  };
+  }, [user?.selectedLanguageId, navigation]);
 
   useEffect(() => {
-    if (isTimedQuiz && scoreUpdateCompleted) {
+    if ((isTimedQuiz || isRandomQuiz) && scoreUpdateCompleted) {
       const timer = setTimeout(() => {
         handleGoHomeAfterPointsCollected();
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isTimedQuiz, scoreUpdateCompleted, navigation, user?.selectedLanguageId]);
+  }, [
+    isTimedQuiz,
+    isRandomQuiz,
+    scoreUpdateCompleted,
+    handleGoHomeAfterPointsCollected,
+  ]);
 
   return (
     <View style={globalStyles.centeredContainer}>
@@ -70,6 +82,18 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
       <Text style={styles.finalScoreText}>
         Bu Quizden Kazanılan Puan: {earnedPoints}
       </Text>
+
+      {isRandomQuiz && totalQuestions !== undefined && (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statText}>Toplam Soru: {totalQuestions}</Text>
+          <Text style={[styles.statText, { color: Colors.successGreen }]}>
+            Doğru Cevap: {correctAnswers}
+          </Text>
+          <Text style={[styles.statText, { color: Colors.errorRed }]}>
+            Yanlış Cevap: {incorrectAnswers}
+          </Text>
+        </View>
+      )}
 
       {!scoreUpdateCompleted ? (
         <TouchableOpacity
@@ -84,11 +108,11 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
           )}
         </TouchableOpacity>
       ) : (
-        <View>
+        <View style={styles.scoreCollectedContainer}>
           <Text style={styles.scoreCollectedText}>
             Puanınız hesabınıza eklendi!
           </Text>
-          {!isTimedQuiz && (
+          {!isTimedQuiz && !isRandomQuiz && (
             <TouchableOpacity
               style={[
                 styles.actionButton,
@@ -105,7 +129,7 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
         </View>
       )}
 
-      {!isTimedQuiz && onPlayAgain && (
+      {!isTimedQuiz && !isRandomQuiz && onPlayAgain && (
         <TouchableOpacity style={styles.playAgainButton} onPress={onPlayAgain}>
           <Text style={styles.playAgainButtonText}>Tekrar Oyna</Text>
         </TouchableOpacity>
@@ -127,6 +151,16 @@ const styles = StyleSheet.create({
     color: Colors.accentPrimary,
     marginBottom: Spacing.large,
   },
+  statsContainer: {
+    marginBottom: Spacing.large,
+    alignItems: "center",
+  },
+  statText: {
+    fontSize: FontSizes.body,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.small / 2,
+    fontWeight: "bold",
+  },
   actionButton: {
     backgroundColor: Colors.accentPrimary,
     paddingVertical: Spacing.medium,
@@ -141,6 +175,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.h3,
     fontWeight: "bold",
   },
+  scoreCollectedContainer: {
+    alignItems: "center",
+  },
   scoreCollectedText: {
     fontSize: FontSizes.body,
     color: Colors.accentPrimary,
@@ -150,7 +187,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   playAgainButton: {
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: Colors.accentPrimary,
     paddingVertical: Spacing.medium,
     paddingHorizontal: Spacing.large,
     borderRadius: Radii.medium,
@@ -161,7 +198,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   playAgainButtonText: {
-    color: Colors.textPrimary,
+    color: Colors.white,
     fontSize: FontSizes.h3,
     fontWeight: "bold",
   },

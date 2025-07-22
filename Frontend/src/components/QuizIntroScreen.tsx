@@ -14,16 +14,20 @@ import { Spacing } from "../styles/GlobalStyles/spacing";
 import { FontSizes } from "../styles/GlobalStyles/typography";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
 
-type QuizLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
+export type QuizLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
 
 interface QuizIntroScreenProps {
-  onStartQuiz: (level: QuizLevel) => void;
+  onStartQuiz: (levelOrCount: QuizLevel | number) => void;
   isLoading: boolean;
-  selectedLevel: QuizLevel;
-  onLevelSelect: (level: QuizLevel) => void;
+  selectedLevel?: QuizLevel;
+  onLevelSelect?: (level: QuizLevel) => void;
+  selectedQuestionCount?: number;
+  onQuestionCountSelect?: (count: number) => void;
   title?: string;
   description?: string;
   isTimedQuiz?: boolean;
+  isRandomQuiz?: boolean;
+  questionCountOptions?: number[];
 }
 
 const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
@@ -31,16 +35,58 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
   isLoading,
   selectedLevel,
   onLevelSelect,
+  selectedQuestionCount,
+  onQuestionCountSelect,
   title = "Hızlı Yarışmaya Hoş Geldin!",
   description = "Seviyeni seç ve bilgini test et.",
   isTimedQuiz = false,
+  isRandomQuiz = false,
+  questionCountOptions = [10, 20, 30, 40],
 }) => {
+  const handleStart = () => {
+    if (isRandomQuiz && selectedQuestionCount) {
+      onStartQuiz(selectedQuestionCount);
+    } else if (!isTimedQuiz && selectedLevel) {
+      onStartQuiz(selectedLevel);
+    } else {
+      onStartQuiz(0);
+    }
+  };
+
   return (
     <View style={globalStyles.centeredContainer}>
       <Text style={styles.introTitle}>{title}</Text>
       <Text style={styles.introDescription}>{description}</Text>
 
-      {!isTimedQuiz && (
+      {isRandomQuiz && (
+        <View style={styles.levelSelectionContainer}>
+          {questionCountOptions.map((count) => (
+            <TouchableOpacity
+              key={count}
+              style={[
+                styles.levelButton,
+                selectedQuestionCount === count && styles.selectedLevelButton,
+              ]}
+              onPress={() =>
+                onQuestionCountSelect && onQuestionCountSelect(count)
+              }
+              disabled={isLoading}
+            >
+              <Text
+                style={[
+                  styles.levelButtonText,
+                  selectedQuestionCount === count &&
+                    styles.selectedLevelButtonText,
+                ]}
+              >
+                {count} Soru
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {!isTimedQuiz && !isRandomQuiz && (
         <View style={styles.levelSelectionContainer}>
           {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
             <TouchableOpacity
@@ -49,7 +95,7 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
                 styles.levelButton,
                 selectedLevel === level && styles.selectedLevelButton,
               ]}
-              onPress={() => onLevelSelect(level as QuizLevel)}
+              onPress={() => onLevelSelect && onLevelSelect(level as QuizLevel)}
               disabled={isLoading}
             >
               <Text
@@ -67,8 +113,8 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
 
       <TouchableOpacity
         style={styles.startButton}
-        onPress={() => onStartQuiz(selectedLevel)}
-        disabled={isLoading}
+        onPress={handleStart}
+        disabled={isLoading || (isRandomQuiz && !selectedQuestionCount)}
       >
         {isLoading ? (
           <ActivityIndicator size="small" color={Colors.white} />

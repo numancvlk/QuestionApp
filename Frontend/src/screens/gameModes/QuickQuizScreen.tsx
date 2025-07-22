@@ -22,14 +22,13 @@ import QuizQuestionComponent from "../../components/QuizQuestion";
 import QuizIntroScreen from "../../components/QuizIntroScreen";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
 import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
+import { QuizLevel } from "../../components/QuizIntroScreen";
 
 // STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
 import { Spacing } from "../../styles/GlobalStyles/spacing";
 import { FontSizes } from "../../styles/GlobalStyles/typography";
 import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
-
-type QuizLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
 
 const QuickQuizScreen = () => {
   const { user, isLoading: authLoading, checkAuthStatus } = useAuth();
@@ -54,7 +53,9 @@ const QuickQuizScreen = () => {
   const userLanguageId = user?.selectedLanguageId;
 
   const fetchQuizQuestions = useCallback(
-    async (level: QuizLevel) => {
+    async (levelOrCount: QuizLevel | number) => {
+      const level = levelOrCount as QuizLevel;
+
       if (!userLanguageId) {
         Alert.alert("Dil Seçimi Hatası", "Lütfen önce bir dil seçin.");
         (navigation as any).navigate("InitialLanguageSelectionScreen");
@@ -66,6 +67,9 @@ const QuickQuizScreen = () => {
       setEarnedPointsThisQuiz(0);
       setCurrentQuestionIndex(0);
       setScoreUpdateCompleted(false);
+      setShowFeedbackArea(false);
+      setIsCorrectAnswer(null);
+      setAnswerFeedbackText("");
 
       try {
         console.log(
@@ -212,6 +216,7 @@ const QuickQuizScreen = () => {
           onLevelSelect={setSelectedLevel}
           onStartQuiz={fetchQuizQuestions}
           isLoading={loadingQuiz}
+          isRandomQuiz={false}
         />
       );
     case "question":
