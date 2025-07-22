@@ -1,5 +1,5 @@
 //LIBRARY
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Modal,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 //MY SCRIPTS
 import { useAuth } from "../../context/AuthContext";
@@ -19,7 +21,7 @@ import {
 } from "../../api/userApi";
 import { QuizQuestion } from "../../types";
 import QuizQuestionComponent from "../../components/QuizQuestion";
-import { AppTabScreenNavigationProp } from "../../navigation/types";
+import { DailyQuestionModalNavigationProp } from "../../navigation/types";
 
 //STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
@@ -29,8 +31,7 @@ import { FontSizes } from "../../styles/GlobalStyles/typography";
 
 const DailyQuestionScreen = () => {
   const { user, isLoading: authLoading, checkAuthStatus } = useAuth();
-  const navigation =
-    useNavigation<AppTabScreenNavigationProp<"DailyQuestionScreen">>();
+  const navigation = useNavigation<DailyQuestionModalNavigationProp>();
 
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(
     null
@@ -38,7 +39,7 @@ const DailyQuestionScreen = () => {
   const [loadingQuestion, setLoadingQuestion] = useState(false);
   const [hasAnsweredToday, setHasAnsweredToday] = useState(false);
   const [nextAttemptTime, setNextAttemptTime] = useState<string | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [explanationText, setExplanationText] = useState("");
   const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
 
@@ -47,13 +48,14 @@ const DailyQuestionScreen = () => {
   const fetchDailyQuestionAndStatus = useCallback(async () => {
     if (!userLanguageId) {
       Alert.alert("Dil Seçimi Hatası", "Lütfen önce bir dil seçin.");
+      navigation.goBack(); // Modalı kapat
       navigation.navigate("InitialLanguageSelectionScreen");
       return;
     }
 
     setLoadingQuestion(true);
     setCurrentQuestion(null);
-    setShowExplanation(false);
+    setShowFeedback(false);
     setExplanationText("");
     setIsCorrectAnswer(null);
     setHasAnsweredToday(false);
@@ -63,16 +65,7 @@ const DailyQuestionScreen = () => {
       if (statusResponse.hasAnsweredToday) {
         setHasAnsweredToday(true);
         setNextAttemptTime(statusResponse.nextAttemptTime || null);
-        Alert.alert(
-          "Günün Sorusu",
-          `Günün sorusunu zaten yanıtladınız. ${
-            statusResponse.nextAttemptTime
-              ? `Yarın (${new Date(
-                  statusResponse.nextAttemptTime
-                ).toLocaleDateString()}) `
-              : ""
-          }tekrar deneyin!`
-        );
+        navigation.goBack();
         return;
       }
 
@@ -81,18 +74,11 @@ const DailyQuestionScreen = () => {
       setHasAnsweredToday(false);
     } catch (error: any) {
       console.error("Günlük soru veya durum çekme hatası:", error);
-      if (error.message.includes("already answered")) {
-        setHasAnsweredToday(true);
-        Alert.alert(
-          "Günün Sorusu",
-          "Günün sorusunu zaten yanıtladınız. Yarın tekrar deneyin!"
-        );
-      } else {
-        Alert.alert(
-          "Hata",
-          error.message || "Soru yüklenirken bir sorun oluştu."
-        );
-      }
+      Alert.alert(
+        "Hata",
+        error.message || "Soru yüklenirken bir sorun oluştu."
+      );
+      navigation.goBack();
     } finally {
       setLoadingQuestion(false);
     }
@@ -103,6 +89,15 @@ const DailyQuestionScreen = () => {
       if (!authLoading && userLanguageId) {
         fetchDailyQuestionAndStatus();
       }
+      return () => {
+        setCurrentQuestion(null);
+        setLoadingQuestion(false);
+        setHasAnsweredToday(false);
+        setNextAttemptTime(null);
+        setShowFeedback(false);
+        setExplanationText("");
+        setIsCorrectAnswer(null);
+      };
     }, [authLoading, userLanguageId, fetchDailyQuestionAndStatus])
   );
 
@@ -121,17 +116,23 @@ const DailyQuestionScreen = () => {
 
       setIsCorrectAnswer(result.isCorrect);
       setExplanationText(result.explanation || "Açıklama mevcut değil.");
-      setShowExplanation(true);
 
       if (result.isCorrect) {
         Alert.alert("Tebrikler!", `${result.pointsEarned} puan kazandınız.`, [
-          { text: "Tamam" },
+          {
+            text: "Tamam",
+            onPress: () => setShowFeedback(true),
+          },
         ]);
       } else {
-        Alert.alert("Yanlış Cevap", "Maalesef doğru cevap bu değil.", [
-          { text: "Tamam" },
+        Alert.alert("Yanlış Cevap", `Maalesef doğru cevap bu değil.`, [
+          {
+            text: "Tamam",
+            onPress: () => setShowFeedback(true),
+          },
         ]);
       }
+
       await checkAuthStatus();
       setHasAnsweredToday(true);
     } catch (error: any) {
@@ -142,105 +143,147 @@ const DailyQuestionScreen = () => {
       );
       setHasAnsweredToday(true);
       setExplanationText(error.message || "Cevap işlenirken bir hata oluştu.");
-      setShowExplanation(true);
+      setShowFeedback(true);
     } finally {
       setLoadingQuestion(false);
     }
   };
 
-  if (authLoading || !userLanguageId || loadingQuestion) {
+  const handleCloseModal = () => {
+    navigation.goBack(); // Modalı kapat
+  };
+
+  const handleCloseFeedback = useCallback(() => {
+    setShowFeedback(false);
+    navigation.goBack();
+  }, [navigation]);
+
+  if (authLoading || loadingQuestion) {
     return (
-      <View style={globalStyles.centeredContainer}>
-        <ActivityIndicator size="large" color={Colors.accentPrimary} />
-        <Text style={globalStyles.bodyText}>Yükleniyor...</Text>
-      </View>
+      <Modal visible={true} transparent={true} animationType="fade">
+        <View style={globalStyles.centeredContainer}>
+          <ActivityIndicator size="large" color={Colors.accentPrimary} />
+          <Text style={globalStyles.bodyText}>Günün Sorusu Yükleniyor...</Text>
+        </View>
+      </Modal>
     );
   }
 
-  if (hasAnsweredToday && !showExplanation) {
-    return (
-      <View style={globalStyles.centeredContainer}>
-        <Text style={styles.noQuestionText}>
-          Günün sorusunu bugün yanıtladınız.{"\n"}
-          {nextAttemptTime
-            ? `Yarın (${new Date(
-                nextAttemptTime
-              ).toLocaleDateString()}) tekrar deneyin!`
-            : "Yarın tekrar deneyin!"}
-        </Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.refreshButtonText}>Ana Sayfaya Dön</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  if (hasAnsweredToday || !currentQuestion) {
+    return null;
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.scoreText}>Puanınız: {user?.globalScore || 0}</Text>
-      {currentQuestion ? (
-        <>
-          <QuizQuestionComponent
-            question={currentQuestion}
-            onAnswer={handleAnswer}
-            disableInteractions={showExplanation}
-          />
-
-          {showExplanation && (
-            <View
-              style={[
-                styles.explanationContainer,
-                {
-                  backgroundColor: isCorrectAnswer
-                    ? Colors.successLight
-                    : Colors.errorLight,
-                  borderColor: isCorrectAnswer ? Colors.success : Colors.error,
-                },
-              ]}
-            >
-              <Text style={styles.explanationTitle}>Açıklama:</Text>
-              <Text style={styles.explanationText}>{explanationText}</Text>
-              <TouchableOpacity
-                style={styles.nextQuestionButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Text style={styles.nextQuestionButtonText}>Tamam</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
-      ) : (
-        <View style={globalStyles.centeredContainer}>
-          <Text style={styles.noQuestionText}>Soru bulunamadı.</Text>
+    <Modal
+      visible={true}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={handleCloseModal}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          {/* Kapatma butonu */}
           <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={fetchDailyQuestionAndStatus}
+            style={styles.closeButton}
+            onPress={handleCloseModal}
           >
-            <Text style={styles.refreshButtonText}>Tekrar Dene</Text>
+            <Icon name="close-circle" size={30} color={Colors.textSecondary} />
           </TouchableOpacity>
+
+          <Text style={styles.dailyQuestionTitle}>Günün Sorusu</Text>
+          <Text style={styles.scoreText}>
+            Puanınız: {user?.globalScore || 0}
+          </Text>
+
+          {currentQuestion ? (
+            <QuizQuestionComponent
+              question={currentQuestion}
+              onAnswer={handleAnswer}
+              disableInteractions={showFeedback}
+            />
+          ) : (
+            <Text style={styles.noQuestionText}>Günün sorusu bulunamadı.</Text>
+          )}
+
+          <Modal
+            visible={showFeedback}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={handleCloseFeedback}
+          >
+            <View style={styles.feedbackOverlay}>
+              <View
+                style={[
+                  styles.feedbackContainer,
+                  {
+                    backgroundColor: isCorrectAnswer
+                      ? Colors.successLight
+                      : Colors.errorLight,
+                    borderColor: isCorrectAnswer
+                      ? Colors.success
+                      : Colors.error,
+                  },
+                ]}
+              >
+                <Text style={styles.feedbackTitle}>
+                  {isCorrectAnswer ? "Doğru Cevap!" : "Yanlış Cevap!"}
+                </Text>
+                <Text style={styles.feedbackText}>{explanationText}</Text>
+                <TouchableOpacity
+                  style={styles.feedbackButton}
+                  onPress={handleCloseFeedback}
+                >
+                  <Text style={styles.feedbackButtonText}>Tamam</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </View>
-      )}
-    </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.backgroundPrimary,
-    paddingTop: Spacing.large,
-    justifyContent: "flex-start",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
     alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: Colors.backgroundPrimary,
+    borderRadius: Radii.large,
+    padding: Spacing.large,
+    width: "90%",
+    maxHeight: "80%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  closeButton: {
+    position: "absolute",
+    top: Spacing.small,
+    right: Spacing.small,
+    zIndex: 1,
+    padding: Spacing.xSmall,
+  },
+  dailyQuestionTitle: {
+    fontSize: FontSizes.h2,
+    fontWeight: "bold",
+    color: Colors.accentPrimary,
+    marginBottom: Spacing.medium,
+    marginTop: Spacing.medium,
   },
   scoreText: {
     fontSize: FontSizes.h3,
     fontWeight: "bold",
     color: Colors.textPrimary,
     textAlign: "center",
-    marginBottom: Spacing.medium,
+    marginBottom: Spacing.large,
   },
   noQuestionText: {
     fontSize: FontSizes.body,
@@ -249,50 +292,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: Spacing.medium,
   },
-  refreshButton: {
-    backgroundColor: Colors.accentPrimary,
-    paddingVertical: Spacing.small,
-    paddingHorizontal: Spacing.medium,
+  feedbackOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  feedbackContainer: {
+    padding: Spacing.large,
     borderRadius: Radii.medium,
-    marginTop: Spacing.medium,
+    borderWidth: 1,
+    width: "80%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  refreshButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.body,
+  feedbackTitle: {
+    fontSize: FontSizes.h2,
     fontWeight: "bold",
+    marginBottom: Spacing.medium,
+    color: Colors.textPrimary,
   },
-  nextQuestionButton: {
+  feedbackText: {
+    fontSize: FontSizes.body,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.large,
+  },
+  feedbackButton: {
     backgroundColor: Colors.accentPrimary,
     paddingVertical: Spacing.medium,
     paddingHorizontal: Spacing.large,
     borderRadius: Radii.medium,
-    marginTop: Spacing.large,
-    alignSelf: "center",
+    minWidth: 120,
+    alignItems: "center",
   },
-  nextQuestionButtonText: {
+  feedbackButtonText: {
     color: Colors.white,
     fontSize: FontSizes.h3,
     fontWeight: "bold",
-  },
-  explanationContainer: {
-    marginTop: Spacing.large,
-    padding: Spacing.medium,
-    borderRadius: Radii.medium,
-    borderWidth: 1,
-    width: "90%",
-    alignItems: "center",
-  },
-  explanationTitle: {
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
-    marginBottom: Spacing.small,
-    color: Colors.textPrimary,
-  },
-  explanationText: {
-    fontSize: FontSizes.body,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginBottom: Spacing.medium,
   },
 });
 

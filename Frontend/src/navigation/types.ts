@@ -1,4 +1,3 @@
-// LIBRARY
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -9,7 +8,6 @@ export type AppTabParamList = {
   QuickQuizScreen: undefined;
   TimedQuizScreen: undefined;
   RandomQuestionScreen: undefined;
-  DailyQuestionScreen: undefined;
   LeaderboardScreen: undefined;
 };
 
@@ -22,6 +20,7 @@ export type RootStackParamList = {
     screen: keyof AppTabParamList;
     params?: AppTabParamList[keyof AppTabParamList];
   };
+  DailyQuestionModal: undefined;
 };
 
 export type RootStackNavigationProp<
@@ -39,6 +38,11 @@ export type LearningPathScreenNavigationProp =
   AppTabScreenNavigationProp<"LearningPathScreen">;
 export type QuickQuizScreenNavigationProp =
   AppTabScreenNavigationProp<"QuickQuizScreen">;
+
+export type DailyQuestionModalNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "DailyQuestionModal"
+>;
 
 export type LearningPathScreenRouteProp = RouteProp<
   AppTabParamList,

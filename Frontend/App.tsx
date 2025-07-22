@@ -1,7 +1,7 @@
 //LIBRARY
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -10,6 +10,8 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 //MY SCRIPTS
 import { RootStackParamList, AppTabParamList } from "./src/navigation/types";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { checkDailyQuestionStatus } from "./src/api/userApi";
+import { RootStackNavigationProp } from "./src/navigation/types";
 
 // Screens
 import LoginScreen from "./src/screens/auth/LoginScreen";
@@ -48,8 +50,6 @@ const AppTabs: React.FC = () => {
             iconName = focused ? "timer-sand" : "timer-sand";
           } else if (route.name === "RandomQuestionScreen") {
             iconName = focused ? "head-question" : "head-question-outline";
-          } else if (route.name === "DailyQuestionScreen") {
-            iconName = focused ? "calendar-check" : "calendar-check-outline";
           } else if (route.name === "LeaderboardScreen") {
             iconName = focused ? "trophy" : "trophy-outline";
           } else {
@@ -93,11 +93,6 @@ const AppTabs: React.FC = () => {
         options={{ title: "Rastgele Soru" }}
       />
       <TAB.Screen
-        name="DailyQuestionScreen"
-        component={DailyQuestionScreen}
-        options={{ title: "Günün Sorusu" }}
-      />
-      <TAB.Screen
         name="LeaderboardScreen"
         component={LeaderboardScreen}
         options={{ title: "Liderlik" }}
@@ -107,8 +102,27 @@ const AppTabs: React.FC = () => {
 };
 
 const AppNavigator: React.FC = () => {
-  const { isLoading, isAuthenticated, user, initialRoute, learningPathParams } =
-    useAuth();
+  const { isLoading, isAuthenticated, user, initialRoute } = useAuth();
+  const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
+
+  const checkAndShowDailyQuestion = useCallback(async () => {
+    if (isAuthenticated && user?.selectedLanguageId && navigation.isFocused()) {
+      try {
+        const status = await checkDailyQuestionStatus();
+        if (!status.hasAnsweredToday) {
+          navigation.navigate("DailyQuestionModal");
+        }
+      } catch (error) {
+        console.error("Günün sorusu durumu kontrol hatası:", error);
+      }
+    }
+  }, [isAuthenticated, user?.selectedLanguageId, navigation]);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      checkAndShowDailyQuestion();
+    }
+  }, [isLoading, isAuthenticated, checkAndShowDailyQuestion]);
 
   if (isLoading || initialRoute === undefined) {
     return (
@@ -132,6 +146,15 @@ const AppNavigator: React.FC = () => {
       />
       <STACK.Screen name="AppTabs" component={AppTabs} />
       <STACK.Screen name="LessonDetailScreen" component={LessonDetailScreen} />
+      <STACK.Screen
+        name="DailyQuestionModal"
+        component={DailyQuestionScreen}
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          animation: "fade",
+        }}
+      />
     </STACK.Navigator>
   );
 };
