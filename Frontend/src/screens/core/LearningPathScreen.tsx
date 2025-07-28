@@ -8,11 +8,14 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 // MY SCRIPTS
 import { Lesson } from "../../types";
-import { LearningPathScreenNavigationProp } from "../../navigation/types";
+import {
+  LearningPathScreenNavigationProp,
+  LearningPathScreenRouteProp,
+} from "../../navigation/types";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
@@ -23,13 +26,23 @@ import { learningPathStyles } from "../../styles/ScreenStyles/LearningPathScreen
 
 const LearningPathScreen: React.FC = () => {
   const navigation = useNavigation<LearningPathScreenNavigationProp>();
+  const route = useRoute<LearningPathScreenRouteProp>();
+
+  const { selectedLanguageId: initialSelectedLanguageId } = route.params || {};
+
   const { logout, user } = useAuth();
 
-  const selectedLanguageId = user?.selectedLanguageId;
+  const [selectedLanguageId, setSelectedLanguageId] = useState<
+    string | undefined | null
+  >(initialSelectedLanguageId);
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedLanguageId(user?.selectedLanguageId);
+  }, [user?.selectedLanguageId]);
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -39,26 +52,33 @@ const LearningPathScreen: React.FC = () => {
         return;
       }
 
+      setIsLoading(true);
+      setError(null);
       try {
+        console.log(
+          `[LearningPathScreen] Dersler çekiliyor: ${selectedLanguageId}`
+        );
         const response = await axiosInstance.get(
           `/lessons/by-language/${selectedLanguageId}`
         );
         setLessons(response.data.lessons);
+        console.log(
+          `[LearningPathScreen] ${response.data.lessons.length} ders çekildi.`
+        );
         setError(null);
       } catch (err: any) {
         console.error("Dersler yüklenirken hata oluştu:", err);
-        setError(err.response?.data?.message || "Dersler yüklenemedi.");
-        Alert.alert(
-          "Hata",
-          err.response?.data?.message || "Dersleri alırken bir sorun oluştu."
-        );
+        const errorMessage =
+          err.response?.data?.message || "Dersler yüklenemedi.";
+        setError(errorMessage);
+        Alert.alert("Hata", errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchLessons();
-  }, [selectedLanguageId, user]);
+  }, [selectedLanguageId]);
 
   const groupedLessons = useMemo(() => {
     const groups: { [key: string]: Lesson[] } = {
@@ -69,8 +89,9 @@ const LearningPathScreen: React.FC = () => {
     };
 
     lessons.forEach((lesson) => {
-      if (groups[lesson.level]) {
-        groups[lesson.level].push(lesson);
+      const levelKey = lesson.level.toUpperCase();
+      if (groups[levelKey]) {
+        groups[levelKey].push(lesson);
       } else {
         console.warn(
           `Bilinmeyen ders seviyesi: ${lesson.level} for lesson: ${lesson.title}`
@@ -91,6 +112,7 @@ const LearningPathScreen: React.FC = () => {
         "Hata",
         "Ders detaylarını görüntülemek için seçili bir dil bulunamadı."
       );
+      navigation.navigate("InitialLanguageSelectionScreen");
       return;
     }
 
@@ -130,23 +152,48 @@ const LearningPathScreen: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <View style={globalStyles.centeredContainer}>
-        <Text style={globalStyles.bodyText}>{error}</Text>
-      </View>
-    );
-  }
-
   if (!selectedLanguageId) {
     return (
       <View style={globalStyles.centeredContainer}>
         <Text style={globalStyles.bodyText}>
-          Yönlendirme hatası: Geçersiz dil seçimi.
+          Yönlendirme hatası: Geçersiz dil seçimi. Lütfen ana menüden dil
+          seçerek tekrar deneyin.
         </Text>
+        <TouchableOpacity
+          style={learningPathStyles.retryButton}
+          onPress={() => navigation.navigate("InitialLanguageSelectionScreen")}
+        >
+          <Text style={learningPathStyles.retryButtonText}>
+            Dil Seçimine Git
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  if (error) {
+    return (
+      <View style={globalStyles.centeredContainer}>
+        <Text style={globalStyles.bodyText}>{error}</Text>
+        <TouchableOpacity
+          style={learningPathStyles.retryButton}
+          onPress={() => {
+            setError(null);
+            setIsLoading(true);
+          }}
+        >
+          <Text style={learningPathStyles.retryButtonText}>Tekrar Dene</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const levelsOrder: (keyof typeof groupedLessons)[] = [
+    "BEGINNER",
+    "INTERMEDIATE",
+    "ADVANCED",
+    "EXPERT",
+  ];
 
   return (
     <View style={globalStyles.appContainer}>
@@ -160,37 +207,39 @@ const LearningPathScreen: React.FC = () => {
       <ScrollView contentContainerStyle={learningPathStyles.scrollViewContent}>
         <Text style={learningPathStyles.screenTitle}>Öğrenme Yolu</Text>
 
-        {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
+        {levelsOrder.map((level) => (
           <View key={level} style={learningPathStyles.levelSection}>
             <Text style={learningPathStyles.levelHeader}>
-              {level.charAt(0).toUpperCase() + level.slice(1).toLowerCase()}
+              {(level as string).charAt(0).toUpperCase() +
+                (level as string).slice(1).toLowerCase()}
             </Text>
-            {groupedLessons[level as keyof typeof groupedLessons]?.length >
-            0 ? (
-              groupedLessons[level as keyof typeof groupedLessons].map(
-                (item) => (
-                  <TouchableOpacity
-                    key={item._id.toString()}
-                    style={learningPathStyles.lessonItem}
-                    onPress={() => handleLessonPress(item._id.toString())}
-                  >
-                    <Text style={learningPathStyles.lessonOrder}>
-                      {item.order}.
+            {groupedLessons[level]?.length > 0 ? (
+              groupedLessons[level].map((item) => (
+                <TouchableOpacity
+                  key={item._id.toString()}
+                  style={[learningPathStyles.lessonItem, globalStyles.card]}
+                  onPress={() => handleLessonPress(item._id.toString())}
+                >
+                  <Text style={learningPathStyles.lessonOrder}>
+                    {item.order}.
+                  </Text>
+                  <View style={learningPathStyles.lessonContent}>
+                    <Text style={learningPathStyles.lessonTitle}>
+                      {item.title}
                     </Text>
-                    <View style={learningPathStyles.lessonContent}>
-                      <Text style={learningPathStyles.lessonTitle}>
-                        {item.title}
-                      </Text>
-                      <Text style={learningPathStyles.lessonDescription}>
-                        {item.description}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )
-              )
+                    <Text
+                      style={learningPathStyles.lessonDescription}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {item.description}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
             ) : (
               <Text style={learningPathStyles.noLessonsText}>
-                Bu seviye için henüz ders bulunmamaktadır.
+                Bu seviye için henüz ders bulunmamaktadır. Yakında eklenecek!
               </Text>
             )}
           </View>
