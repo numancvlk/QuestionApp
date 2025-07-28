@@ -24,6 +24,7 @@ import QuizQuestionComponent from "../../components/QuizQuestion";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
 import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
 import { AppTabScreenNavigationProp } from "../../navigation/types";
+import { getRandomMotivationMessage } from "../../utils/motivationMessages";
 
 // STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
@@ -50,6 +51,11 @@ const TimedQuizScreen = () => {
   const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
   const [answerFeedbackText, setAnswerFeedbackText] = useState<string>("");
   const [showFeedbackArea, setShowFeedbackArea] = useState(false);
+
+  const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
+  const [incorrectAnswersCount, setIncorrectAnswersCount] = useState(0);
+  const [totalQuestionsAnswered, setTotalQuestionsAnswered] = useState(0);
+  const [motivationText, setMotivationText] = useState<string>("");
 
   const [isScoreUpdating, setIsScoreUpdating] = useState(false);
   const [scoreUpdateCompleted, setScoreUpdateCompleted] = useState(false);
@@ -89,6 +95,9 @@ const TimedQuizScreen = () => {
     setShowFeedbackArea(false);
     setIsCorrectAnswer(null);
     setAnswerFeedbackText("");
+    setCorrectAnswersCount(0);
+    setIncorrectAnswersCount(0);
+    setTotalQuestionsAnswered(0);
 
     fetchQuestion();
 
@@ -125,6 +134,9 @@ const TimedQuizScreen = () => {
         setLoadingQuestion(false);
         setIsScoreUpdating(false);
         setScoreUpdateCompleted(false);
+        setCorrectAnswersCount(0);
+        setIncorrectAnswersCount(0);
+        setTotalQuestionsAnswered(0);
       };
     }, [])
   );
@@ -134,8 +146,15 @@ const TimedQuizScreen = () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      if (user?.selectedLanguageId) {
+        const message = getRandomMotivationMessage(
+          user.selectedLanguageId,
+          "quiz_end"
+        );
+        setMotivationText(message);
+      }
     }
-  }, [quizEnded]);
+  }, [quizEnded, user?.selectedLanguageId]);
 
   // Cevaplama mantığı
   const handleAnswer = async (selectedOption: string) => {
@@ -147,10 +166,13 @@ const TimedQuizScreen = () => {
       const result = await checkQuizAnswer(currentQuestion._id, selectedOption);
 
       setIsCorrectAnswer(result.isCorrect);
+      setTotalQuestionsAnswered((prev) => prev + 1);
       if (result.isCorrect) {
         setCurrentQuizScore((prevScore) => prevScore + result.pointsEarned);
+        setCorrectAnswersCount((prev) => prev + 1);
         setAnswerFeedbackText(`Doğru! (+${result.pointsEarned} puan)`);
       } else {
+        setIncorrectAnswersCount((prev) => prev + 1);
         const explanation = result.explanation
           ? `Açıklama: ${result.explanation}`
           : "Doğru cevap bu değil.";
@@ -180,8 +202,8 @@ const TimedQuizScreen = () => {
 
     try {
       await updateScore(currentQuizScore);
-      await checkAuthStatus(); // Kullanıcının güncel puanını çekmek için
-      setScoreUpdateCompleted(true); // Başarılı tamamlandı
+      await checkAuthStatus();
+      setScoreUpdateCompleted(true);
       console.log("[TimedQuizScreen] Puan başarıyla güncellendi.");
     } catch (error) {
       console.error("[TimedQuizScreen] Global skor güncelleme hatası:", error);
@@ -215,7 +237,6 @@ const TimedQuizScreen = () => {
     );
   }
 
-  // QUIZ BAŞLANGIÇ EKRANI (QuizIntroScreen'i kullanıyoruz)
   if (!quizStarted) {
     return (
       <QuizIntroScreen
@@ -238,6 +259,10 @@ const TimedQuizScreen = () => {
         scoreUpdateCompleted={scoreUpdateCompleted}
         onCollectPoints={handleCollectPoints}
         isTimedQuiz={true}
+        correctAnswers={correctAnswersCount}
+        incorrectAnswers={incorrectAnswersCount}
+        totalQuestions={totalQuestionsAnswered}
+        motivationMessage={motivationText}
       />
     );
   }

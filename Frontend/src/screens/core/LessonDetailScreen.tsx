@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,12 +19,15 @@ import {
   RootStackNavigationProp,
   LessonDetailScreenRouteProp,
 } from "../../navigation/types";
+import { useAuth } from "../../context/AuthContext";
+import { getRandomMotivationMessage } from "../../utils/motivationMessages";
 
 const LessonDetailScreen: React.FC = () => {
   const route = useRoute<LessonDetailScreenRouteProp>();
   const navigation =
     useNavigation<RootStackNavigationProp<"LessonDetailScreen">>();
   const { lessonId } = route.params;
+  const { user } = useAuth();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -44,6 +47,7 @@ const LessonDetailScreen: React.FC = () => {
   const [wrongAnswersCount, setWrongAnswersCount] = useState<number>(0);
   const [earnedPoints, setEarnedPoints] = useState<number>(0);
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [motivationText, setMotivationText] = useState<string>("");
 
   useEffect(() => {
     const fetchLessonDetail = async () => {
@@ -65,6 +69,19 @@ const LessonDetailScreen: React.FC = () => {
 
     fetchLessonDetail();
   }, [lessonId]);
+
+  useEffect(() => {
+    const getMotivation = () => {
+      if (currentStep === "summary" && user?.selectedLanguageId) {
+        const message = getRandomMotivationMessage(
+          user.selectedLanguageId,
+          "lesson_complete"
+        );
+        setMotivationText(message);
+      }
+    };
+    getMotivation();
+  }, [currentStep, user?.selectedLanguageId]);
 
   const checkAnswer = () => {
     if (
@@ -321,23 +338,10 @@ const LessonDetailScreen: React.FC = () => {
         );
 
       case "summary":
-        const motivationMessages = [
-          "Tebrikler! Harikaydın!",
-          "Muhteşem bir iş çıkardın, böyle devam et!",
-          "Gelişimini görmek harika!",
-          "Bir sonraki ders için hazırsın!",
-          "Başarın ilham verici!",
-          "Dil öğrenme yolculuğunda bir adımı daha tamamladın!",
-        ];
-        const randomMotivation =
-          motivationMessages[
-            Math.floor(Math.random() * motivationMessages.length)
-          ];
-
         return (
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryTitle}>Ders Tamamlandı!</Text>
-            <Text style={styles.motivationText}>{randomMotivation}</Text>
+            <Text style={styles.motivationText}>{motivationText}</Text>{" "}
             <View style={styles.summaryStats}>
               <Text style={styles.summaryStatText}>
                 Toplam Soru: {totalQuestions}
@@ -355,7 +359,18 @@ const LessonDetailScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.backToPathButton}
               onPress={() => {
-                navigation.replace("AppTabs");
+                if (user?.selectedLanguageId) {
+                  navigation.replace("AppTabs", {
+                    screen: "LearningPathScreen",
+                    params: { selectedLanguageId: user.selectedLanguageId },
+                  });
+                } else {
+                  Alert.alert(
+                    "Bilgi Eksik",
+                    "Öğrenme yoluna dönmek için dil bilgisi gerekli. Lütfen dil seçiminizi kontrol edin."
+                  );
+                  navigation.replace("InitialLanguageSelectionScreen");
+                }
               }}
             >
               <Text style={styles.backToPathButtonText}>

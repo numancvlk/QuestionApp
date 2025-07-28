@@ -1,5 +1,5 @@
 // LIBRARY
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import QuizIntroScreen from "../../components/QuizIntroScreen";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
 import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
 import { QuizLevel } from "../../components/QuizIntroScreen";
+import { getRandomMotivationMessage } from "../../utils/motivationMessages";
 
 // STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
@@ -47,6 +48,10 @@ const QuickQuizScreen = () => {
   const [answerFeedbackText, setAnswerFeedbackText] = useState<string>("");
   const [showFeedbackArea, setShowFeedbackArea] = useState(false);
 
+  const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
+  const [incorrectAnswersCount, setIncorrectAnswersCount] = useState(0);
+
+  const [motivationText, setMotivationText] = useState<string>("");
   const [isScoreUpdating, setIsScoreUpdating] = useState(false);
   const [scoreUpdateCompleted, setScoreUpdateCompleted] = useState(false);
 
@@ -70,6 +75,9 @@ const QuickQuizScreen = () => {
       setShowFeedbackArea(false);
       setIsCorrectAnswer(null);
       setAnswerFeedbackText("");
+      setCorrectAnswersCount(0);
+      setIncorrectAnswersCount(0);
+      setMotivationText("");
 
       try {
         console.log(
@@ -116,10 +124,21 @@ const QuickQuizScreen = () => {
       setShowFeedbackArea(false);
       setIsScoreUpdating(false);
       setScoreUpdateCompleted(false);
-
+      setCorrectAnswersCount(0);
+      setIncorrectAnswersCount(0);
+      setMotivationText("");
       return () => {};
     }, [])
   );
+
+  useEffect(() => {
+    if (currentStep === "summary") {
+      if (userLanguageId) {
+        const message = getRandomMotivationMessage(userLanguageId, "quiz_end");
+        setMotivationText(message);
+      }
+    }
+  }, [currentStep, userLanguageId]);
 
   const handleAnswer = async (selectedOption: string) => {
     const currentQuestion = questions[currentQuestionIndex];
@@ -136,11 +155,13 @@ const QuickQuizScreen = () => {
       if (result.isCorrect) {
         setEarnedPointsThisQuiz((prevScore) => prevScore + result.pointsEarned);
         setAnswerFeedbackText(`Doğru! (+${result.pointsEarned} puan)`);
+        setCorrectAnswersCount((prev) => prev + 1);
       } else {
         const explanation = result.explanation
           ? `Açıklama: ${result.explanation}`
           : "Doğru cevap bu değil.";
         setAnswerFeedbackText(`Yanlış. ${explanation}`);
+        setIncorrectAnswersCount((prev) => prev + 1);
       }
       setShowFeedbackArea(true);
     } catch (error) {
@@ -217,6 +238,9 @@ const QuickQuizScreen = () => {
           onStartQuiz={fetchQuizQuestions}
           isLoading={loadingQuiz}
           isRandomQuiz={false}
+          questionCountOptions={[]}
+          selectedQuestionCount={0}
+          onQuestionCountSelect={() => {}}
         />
       );
     case "question":
@@ -235,7 +259,7 @@ const QuickQuizScreen = () => {
               question={currentQuestion}
               onAnswer={handleAnswer}
               disableInteractions={showFeedbackArea || loadingQuiz}
-              key={currentQuestionIndex}
+              key={currentQuestion._id}
             />
           )}
 
@@ -254,6 +278,12 @@ const QuickQuizScreen = () => {
           isScoreUpdating={isScoreUpdating}
           scoreUpdateCompleted={scoreUpdateCompleted}
           onCollectPoints={handleCollectPoints}
+          isRandomQuiz={false}
+          isTimedQuiz={false}
+          correctAnswers={correctAnswersCount}
+          incorrectAnswers={incorrectAnswersCount}
+          totalQuestions={questions.length}
+          motivationMessage={motivationText}
         />
       );
     case "noQuestions":

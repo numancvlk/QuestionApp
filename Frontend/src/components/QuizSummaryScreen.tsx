@@ -14,6 +14,7 @@ import { Colors, Radii } from "../styles/GlobalStyles/colors";
 import { Spacing } from "../styles/GlobalStyles/spacing";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
 import { FontSizes } from "../styles/GlobalStyles/typography";
+
 //MY SCRIPTS
 import { useNavigation } from "@react-navigation/native";
 import { RootStackNavigationProp } from "../navigation/types";
@@ -24,12 +25,12 @@ interface QuizSummaryScreenProps {
   isScoreUpdating: boolean;
   scoreUpdateCompleted: boolean;
   onCollectPoints: () => void;
-  onPlayAgain?: () => void;
   isTimedQuiz?: boolean;
   isRandomQuiz?: boolean;
   correctAnswers?: number;
   incorrectAnswers?: number;
   totalQuestions?: number;
+  motivationMessage?: string;
 }
 
 const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
@@ -37,12 +38,12 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
   isScoreUpdating,
   scoreUpdateCompleted,
   onCollectPoints,
-  onPlayAgain,
   isTimedQuiz = false,
   isRandomQuiz = false,
   correctAnswers,
   incorrectAnswers,
   totalQuestions,
+  motivationMessage,
 }) => {
   const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
   const { user } = useAuth();
@@ -83,7 +84,11 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
         Bu Quizden Kazanılan Puan: {earnedPoints}
       </Text>
 
-      {isRandomQuiz && totalQuestions !== undefined && (
+      {motivationMessage && (
+        <Text style={styles.motivationText}>{motivationMessage}</Text>
+      )}
+
+      {totalQuestions !== undefined && totalQuestions > 0 && (
         <View style={styles.statsContainer}>
           <Text style={styles.statText}>Toplam Soru: {totalQuestions}</Text>
           <Text style={[styles.statText, { color: Colors.successGreen }]}>
@@ -112,27 +117,19 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
           <Text style={styles.scoreCollectedText}>
             Puanınız hesabınıza eklendi!
           </Text>
-          {!isTimedQuiz && !isRandomQuiz && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                {
-                  marginTop: Spacing.medium,
-                  backgroundColor: Colors.accentPrimary,
-                },
-              ]}
-              onPress={handleGoHomeAfterPointsCollected}
-            >
-              <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                marginTop: Spacing.medium,
+                backgroundColor: Colors.accentPrimary,
+              },
+            ]}
+            onPress={handleGoHomeAfterPointsCollected}
+          >
+            <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
+          </TouchableOpacity>
         </View>
-      )}
-
-      {!isTimedQuiz && !isRandomQuiz && onPlayAgain && (
-        <TouchableOpacity style={styles.playAgainButton} onPress={onPlayAgain}>
-          <Text style={styles.playAgainButtonText}>Tekrar Oyna</Text>
-        </TouchableOpacity>
       )}
     </View>
   );
@@ -150,6 +147,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: Colors.accentPrimary,
     marginBottom: Spacing.large,
+  },
+  motivationText: {
+    fontSize: FontSizes.body,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    fontStyle: "italic",
+    marginBottom: Spacing.medium,
+    paddingHorizontal: Spacing.medium,
   },
   statsContainer: {
     marginBottom: Spacing.large,

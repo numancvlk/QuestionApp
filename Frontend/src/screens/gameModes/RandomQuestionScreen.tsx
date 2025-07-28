@@ -23,8 +23,10 @@ import QuizIntroScreen from "../../components/QuizIntroScreen";
 import QuizQuestionComponent from "../../components/QuizQuestion";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
 import { AppTabScreenNavigationProp } from "../../navigation/types";
-import { QuizLevel } from "../../components/QuizIntroScreen"; // QuizLevel'i buradan import ediyoruz
+import { QuizLevel } from "../../components/QuizIntroScreen";
 import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
+import { getRandomMotivationMessage } from "../../utils/motivationMessages";
+
 //STYLES
 import { Colors, Radii } from "../../styles/GlobalStyles/colors";
 import { Spacing } from "../../styles/GlobalStyles/spacing";
@@ -49,6 +51,7 @@ const RandomQuestionScreen = () => {
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
   const [incorrectAnswersCount, setIncorrectAnswersCount] = useState(0);
   const [currentQuizScore, setCurrentQuizScore] = useState(0);
+  const [motivationText, setMotivationText] = useState<string>("");
 
   const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
   const [answerFeedbackText, setAnswerFeedbackText] = useState<string>("");
@@ -85,7 +88,7 @@ const RandomQuestionScreen = () => {
 
   const startQuiz = useCallback(
     async (levelOrCount: QuizLevel | number) => {
-      const questionCount = levelOrCount as number; // Type assertion
+      const questionCount = levelOrCount as number;
 
       setTotalQuestionsToAsk(questionCount);
       setQuizStarted(true);
@@ -98,6 +101,7 @@ const RandomQuestionScreen = () => {
       setShowFeedbackArea(false);
       setIsCorrectAnswer(null);
       setAnswerFeedbackText("");
+      setMotivationText("");
 
       await fetchQuestion();
     },
@@ -107,7 +111,6 @@ const RandomQuestionScreen = () => {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        // Tüm quiz state'lerini sıfırla
         setQuizStarted(false);
         setQuizEnded(false);
         setCurrentQuestion(null);
@@ -122,6 +125,7 @@ const RandomQuestionScreen = () => {
         setShowFeedbackArea(false);
         setIsScoreUpdating(false);
         setScoreUpdateCompleted(false);
+        setMotivationText("");
       };
     }, [])
   );
@@ -135,6 +139,18 @@ const RandomQuestionScreen = () => {
       setQuizEnded(true);
     }
   }, [currentQuestionIndex, totalQuestionsToAsk, quizStarted]);
+
+  useEffect(() => {
+    if (quizEnded) {
+      if (user?.selectedLanguageId) {
+        const message = getRandomMotivationMessage(
+          user.selectedLanguageId,
+          "quiz_end"
+        );
+        setMotivationText(message);
+      }
+    }
+  }, [quizEnded, user?.selectedLanguageId]);
 
   const handleAnswer = async (selectedOption: string) => {
     if (quizEnded || !currentQuestion || showFeedbackArea) return;
@@ -191,19 +207,6 @@ const RandomQuestionScreen = () => {
       setScoreUpdateCompleted(true);
       console.log("[RandomQuizScreen] Puan başarıyla güncellendi.");
       Alert.alert("Başarılı", "Puanınız başarıyla hesabınıza eklendi!");
-
-      if (user?.selectedLanguageId) {
-        navigation.replace("AppTabs", {
-          screen: "LearningPathScreen",
-          params: { selectedLanguageId: user.selectedLanguageId },
-        });
-      } else {
-        Alert.alert(
-          "Bilgi Eksik",
-          "Öğrenme yoluna dönmek için dil bilgisi gerekli. Lütfen dil seçiminizi kontrol edin."
-        );
-        navigation.replace("InitialLanguageSelectionScreen");
-      }
     } catch (error) {
       console.error("[RandomQuizScreen] Global skor güncelleme hatası:", error);
       Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
@@ -265,6 +268,7 @@ const RandomQuestionScreen = () => {
         correctAnswers={correctAnswersCount}
         incorrectAnswers={incorrectAnswersCount}
         totalQuestions={totalQuestionsToAsk || 0}
+        motivationMessage={motivationText}
       />
     );
   }
