@@ -1,10 +1,9 @@
 // LIBRARY
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   ActivityIndicator,
-  StyleSheet,
   Alert,
   TouchableOpacity,
   TextInput,
@@ -14,34 +13,43 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 
 //MY SCRIPTS
 import axiosInstance from "../../utils/axiosInstance";
-import { Lesson, Exercise, UserProfileResponse } from "../../types";
+import { Lesson } from "../../types";
 import {
   RootStackNavigationProp,
   LessonDetailScreenRouteProp,
 } from "../../navigation/types";
 import { useAuth } from "../../context/AuthContext";
 import { getRandomMotivationMessage } from "../../utils/motivationMessages";
+import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
+import { checkQuizAnswer, updateScore } from "../../api/userApi";
+
+// STYLES
+import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
+import { Colors } from "../../styles/GlobalStyles/colors";
+import { lessonDetailStyles } from "../../styles/ScreenStyles/LessonDetailScreen.style";
 
 const LessonDetailScreen: React.FC = () => {
   const route = useRoute<LessonDetailScreenRouteProp>();
   const navigation =
     useNavigation<RootStackNavigationProp<"LessonDetailScreen">>();
   const { lessonId } = route.params;
-  const { user } = useAuth();
+  const { user, checkAuthStatus } = useAuth();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [currentStep, setCurrentStep] = useState<
-    "intro" | "exercises" | "summary"
+    "intro" | "exercises" | "feedback" | "summary" | "noQuestions"
   >("intro");
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>("");
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+
   const [feedback, setFeedback] = useState<string>("");
-  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
+  const [showFeedbackArea, setShowFeedbackArea] = useState(false);
 
   const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(0);
   const [wrongAnswersCount, setWrongAnswersCount] = useState<number>(0);
@@ -49,15 +57,30 @@ const LessonDetailScreen: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [motivationText, setMotivationText] = useState<string>("");
 
+  const [isScoreUpdating, setIsScoreUpdating] = useState(false);
+  const [scoreUpdateCompleted, setScoreUpdateCompleted] = useState(false);
+
+  const userLanguageId = user?.selectedLanguageId;
+
   useEffect(() => {
     const fetchLessonDetail = async () => {
+      if (!userLanguageId) {
+        setError("Ders yüklemek için seçili bir dil bulunamadı.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
+        console.log(`[LessonDetailScreen] Ders çekiliyor: ${lessonId}`);
         const response = await axiosInstance.get(`/lessons/${lessonId}`);
         const fetchedLesson: Lesson = response.data.lesson;
         setLesson(fetchedLesson);
         setTotalQuestions(fetchedLesson.exercises?.length || 0);
         setError(null);
+        console.log(
+          `[LessonDetailScreen] Ders ${fetchedLesson.title} yüklendi.`
+        );
       } catch (err) {
         console.error("Ders detayları yüklenirken hata oluştu:", err);
         setError("Ders detayları yüklenemedi.");
@@ -68,146 +91,169 @@ const LessonDetailScreen: React.FC = () => {
     };
 
     fetchLessonDetail();
-  }, [lessonId]);
+  }, [lessonId, userLanguageId]);
 
   useEffect(() => {
     const getMotivation = () => {
-      if (currentStep === "summary" && user?.selectedLanguageId) {
+      if (currentStep === "summary" && userLanguageId) {
         const message = getRandomMotivationMessage(
-          user.selectedLanguageId,
+          userLanguageId,
           "lesson_complete"
         );
         setMotivationText(message);
       }
     };
     getMotivation();
-  }, [currentStep, user?.selectedLanguageId]);
+  }, [currentStep, userLanguageId]);
 
-  const checkAnswer = () => {
-    if (
-      !lesson ||
-      !lesson.exercises ||
-      !lesson.exercises[currentExerciseIndex]
-    ) {
-      Alert.alert("Hata", "Egzersiz verisi eksik.");
+  const handleAnswer = async () => {
+    const currentExercise = lesson?.exercises?.[currentExerciseIndex];
+
+    if (!currentExercise) {
+      Alert.alert("Hata", "Egzersiz bilgisi bulunamadı.");
       return;
     }
 
-    const currentExercise: Exercise = lesson.exercises[currentExerciseIndex];
-
-    if (userAnswer.trim() === "") {
-      Alert.alert("Uyarı", "Lütfen bir cevap girin/seçin.");
-      return;
-    }
-
-    setIsAnswerSubmitted(true);
-    let isMatch = false;
-
-    if (typeof currentExercise.correctAnswer === "string") {
-      const correct = currentExercise.correctAnswer.toLowerCase().trim();
-      const user = userAnswer.toLowerCase().trim();
-      isMatch = user === correct;
-    } else if (Array.isArray(currentExercise.correctAnswer)) {
-      const userTrimmed = userAnswer.toLowerCase().trim();
-      isMatch = currentExercise.correctAnswer.some(
-        (ans: string) => ans.toLowerCase().trim() === userTrimmed
+    if (!currentExercise._id) {
+      Alert.alert(
+        "Hata",
+        "Egzersiz ID'si bulunamadı. Lütfen dersi tekrar yükleyin."
       );
+      return;
     }
 
-    if (isMatch) {
-      setFeedback("Doğru!");
-      setIsCorrect(true);
-      setCorrectAnswersCount((prev) => prev + 1);
-      setEarnedPoints((prev) => prev + (currentExercise.points || 0));
+    let answerToEvaluate: string = "";
+
+    if (currentExercise.type === "multipleChoice") {
+      if (selectedOption === null) {
+        Alert.alert("Uyarı", "Lütfen bir seçenek seçin.");
+        return;
+      }
+      answerToEvaluate = selectedOption;
     } else {
-      const displayCorrectAnswer = Array.isArray(currentExercise.correctAnswer)
-        ? currentExercise.correctAnswer.join(", ")
-        : currentExercise.correctAnswer;
-      setFeedback(`Yanlış. Doğru cevap: "${displayCorrectAnswer}"`);
-      setIsCorrect(false);
-      setWrongAnswersCount((prev) => prev + 1);
+      if (userAnswer.trim() === "") {
+        Alert.alert("Uyarı", "Lütfen bir cevap girin.");
+        return;
+      }
+      answerToEvaluate = userAnswer;
+    }
+
+    if (answerToEvaluate === undefined || answerToEvaluate === null) {
+      Alert.alert(
+        "Hata",
+        "Cevap değerlendirilirken beklenmedik bir sorun oluştu."
+      );
+      return;
+    }
+
+    try {
+      const result = await checkQuizAnswer(
+        currentExercise._id as string,
+        answerToEvaluate as string
+      );
+
+      setIsCorrectAnswer(result.isCorrect);
+      if (result.isCorrect) {
+        setEarnedPoints((prev) => prev + result.pointsEarned);
+        setFeedback(`Doğru! (+${result.pointsEarned} puan)`);
+        setCorrectAnswersCount((prev) => prev + 1);
+      } else {
+        const explanation = result.explanation
+          ? `Açıklama: ${result.explanation}`
+          : "Doğru cevap bu değil.";
+        setFeedback(`Yanlış. ${explanation}`);
+        setWrongAnswersCount((prev) => prev + 1);
+      }
+      setShowFeedbackArea(true);
+    } catch (error) {
+      console.error("[LessonDetailScreen] Cevap kontrolü hatası:", error);
+      Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
+      setShowFeedbackArea(false);
     }
   };
 
-  const handleNext = async () => {
-    if (!lesson || !lesson.exercises) {
-      Alert.alert("Hata", "Ders verisi eksik. İlerleme kaydedilemiyor.");
-      return;
-    }
-
-    if (!isAnswerSubmitted) {
-      Alert.alert("Uyarı", "Lütfen soruyu cevaplayın.");
-      return;
-    }
-
+  const handleContinueAfterFeedback = useCallback(() => {
+    setShowFeedbackArea(false);
     setUserAnswer("");
-    setFeedback("");
-    setIsAnswerSubmitted(false);
-    setIsCorrect(null);
+    setSelectedOption(null);
 
-    const nextIndex = currentExerciseIndex + 1;
-
-    if (nextIndex < lesson.exercises.length) {
-      setCurrentExerciseIndex(nextIndex);
+    if (
+      lesson &&
+      lesson.exercises &&
+      currentExerciseIndex < lesson.exercises.length - 1
+    ) {
+      setCurrentExerciseIndex((prevIndex) => prevIndex + 1);
     } else {
-      await completeLessonOnBackend();
       setCurrentStep("summary");
     }
-  };
+  }, [currentExerciseIndex, lesson]);
 
   const completeLessonOnBackend = async () => {
     if (!lesson) return;
+    setIsScoreUpdating(true);
     try {
-      const response = await axiosInstance.post<UserProfileResponse>(
-        "/user/complete-lesson",
-        {
-          lessonId: lesson._id,
-          earnedPoints: earnedPoints,
-        }
-      );
-
-      if (response.data.success) {
-        console.log("Ders başarıyla tamamlandı:", response.data.message);
-      } else {
-        Alert.alert(
-          "Hata",
-          response.data.message || "Dersi tamamlarken bir sorun oluştu."
-        );
-      }
+      await updateScore(earnedPoints);
+      await checkAuthStatus();
+      setScoreUpdateCompleted(true);
+      console.log("Ders başarıyla tamamlandı ve puan güncellendi.");
     } catch (error: any) {
       console.error(
-        "Ders tamamlama API hatası:",
+        "Ders tamamlama/puan güncelleme API hatası:",
         error.response?.data || error.message
       );
-      Alert.alert("Hata", "Dersi tamamlarken bir sunucu hatası oluştu.");
+      Alert.alert(
+        "Hata",
+        "Puan güncelleme sırasında bir sunucu hatası oluştu."
+      );
+      setScoreUpdateCompleted(true);
+    } finally {
+      setIsScoreUpdating(false);
     }
   };
 
   const renderContent = () => {
     if (loading) {
       return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text>Ders yükleniyor...</Text>
+        <View style={lessonDetailStyles.centered}>
+          <ActivityIndicator size="large" color={Colors.accentPrimary} />
+          <Text style={globalStyles.bodyText}>Ders yükleniyor...</Text>
         </View>
       );
     }
 
     if (error) {
       return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
+        <View style={lessonDetailStyles.centered}>
+          <Text style={lessonDetailStyles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={lessonDetailStyles.retryButton}
+            onPress={() => {
+              setError(null);
+              setLoading(true);
+            }}
+          >
+            <Text style={lessonDetailStyles.retryButtonText}>Tekrar Dene</Text>
+          </TouchableOpacity>
         </View>
       );
     }
 
     if (!lesson || !lesson.exercises) {
+      if (currentStep !== "noQuestions") {
+        setCurrentStep("noQuestions");
+      }
       return (
-        <View style={styles.centered}>
-          <Text>
+        <View style={lessonDetailStyles.centered}>
+          <Text style={lessonDetailStyles.noQuestionText}>
             Ders verisi veya egzersizler mevcut değil. Lütfen daha sonra tekrar
             deneyin.
           </Text>
+          <TouchableOpacity
+            style={lessonDetailStyles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={lessonDetailStyles.retryButtonText}>Geri Dön</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -218,20 +264,22 @@ const LessonDetailScreen: React.FC = () => {
     switch (currentStep) {
       case "intro":
         return (
-          <ScrollView contentContainerStyle={styles.introContainer}>
-            <Text style={styles.lessonTitle}>{currentLesson.title}</Text>
-            <Text style={styles.lessonDescription}>
+          <ScrollView contentContainerStyle={lessonDetailStyles.introContainer}>
+            <Text style={lessonDetailStyles.lessonTitle}>
+              {currentLesson.title}
+            </Text>
+            <Text style={lessonDetailStyles.lessonDescription}>
               {currentLesson.description}
             </Text>
-            <Text style={styles.lessonInfo}>
+            <Text style={lessonDetailStyles.lessonInfo}>
               Toplam Soru: {currentExercises.length}
             </Text>
-            <Text style={styles.lessonInfo}>
+            <Text style={lessonDetailStyles.lessonInfo}>
               Zorluk Seviyesi: {currentLesson.level}
             </Text>
 
             <TouchableOpacity
-              style={styles.startButton}
+              style={lessonDetailStyles.startButton}
               onPress={() => {
                 if (currentExercises.length > 0) {
                   setCurrentStep("exercises");
@@ -240,17 +288,20 @@ const LessonDetailScreen: React.FC = () => {
                     "Uyarı",
                     "Bu derste henüz egzersiz bulunmamaktadır."
                   );
+                  setCurrentStep("noQuestions");
                 }
               }}
             >
-              <Text style={styles.startButtonText}>Derse Başla</Text>
+              <Text style={lessonDetailStyles.startButtonText}>
+                Derse Başla
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.backButton}
+              style={lessonDetailStyles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.backButtonText}>Geri Dön</Text>
+              <Text style={lessonDetailStyles.backButtonText}>Geri Dön</Text>
             </TouchableOpacity>
           </ScrollView>
         );
@@ -259,123 +310,182 @@ const LessonDetailScreen: React.FC = () => {
         const currentExercise = currentExercises[currentExerciseIndex];
         if (!currentExercise) {
           return (
-            <View style={styles.centered}>
-              <Text>
+            <View style={lessonDetailStyles.centered}>
+              <Text style={lessonDetailStyles.noQuestionText}>
                 Egzersiz bulunamadı veya yüklenemedi (geçersiz index).
               </Text>
             </View>
           );
         }
+
+        const correctAnswerString = Array.isArray(currentExercise.correctAnswer)
+          ? currentExercise.correctAnswer[0] || ""
+          : currentExercise.correctAnswer || "";
+
         return (
-          <ScrollView contentContainerStyle={styles.exerciseContainer}>
-            <Text style={styles.questionCounter}>
-              Soru {currentExerciseIndex + 1} / {currentExercises.length}
+          <View style={lessonDetailStyles.exerciseScreenContainer}>
+            <Text style={lessonDetailStyles.scoreAndProgressText}>
+              Bu Ders Puanı: {earnedPoints} | Soru {currentExerciseIndex + 1}/
+              {currentExercises.length}
             </Text>
-            <Text style={styles.questionText}>{currentExercise.question}</Text>
-
-            {currentExercise.type === "multipleChoice" && (
-              <View style={styles.optionsContainer}>
-                {currentExercise.options?.map((option, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.optionButton,
-                      userAnswer === option && styles.selectedOption,
-                      isAnswerSubmitted &&
-                        typeof currentExercise.correctAnswer === "string" &&
-                        currentExercise.correctAnswer.toLowerCase() ===
-                          option.toLowerCase() &&
-                        styles.correctOption,
-                      isAnswerSubmitted &&
-                        !isCorrect &&
-                        userAnswer === option &&
-                        styles.wrongOption,
-                    ]}
-                    onPress={() => !isAnswerSubmitted && setUserAnswer(option)}
-                    disabled={isAnswerSubmitted}
-                  >
-                    <Text style={styles.optionText}>{option}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {(currentExercise.type === "text" ||
-              currentExercise.type === "fillInTheBlanks") && (
-              <TextInput
-                style={styles.textInput}
-                placeholder={
-                  currentExercise.type === "text"
-                    ? "Cevabınızı buraya yazın..."
-                    : "Boşluğu doldurun..."
-                }
-                value={userAnswer}
-                onChangeText={setUserAnswer}
-                editable={!isAnswerSubmitted}
-              />
-            )}
-
-            {isAnswerSubmitted && feedback && (
-              <Text
-                style={[
-                  styles.feedbackText,
-                  isCorrect ? styles.correctFeedback : styles.wrongFeedback,
-                ]}
-              >
-                {feedback}
-              </Text>
-            )}
-
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={isAnswerSubmitted ? handleNext : checkAnswer}
+            <ScrollView
+              contentContainerStyle={lessonDetailStyles.exerciseContainer}
             >
-              <Text style={styles.submitButtonText}>
-                {isAnswerSubmitted ? "Sonraki Soru" : "Cevabı Kontrol Et"}
+              <Text style={lessonDetailStyles.questionText}>
+                {currentExercise.question}
               </Text>
-            </TouchableOpacity>
-          </ScrollView>
+
+              {currentExercise.type === "multipleChoice" && (
+                <View style={lessonDetailStyles.optionsContainer}>
+                  {currentExercise.options?.map((option, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        lessonDetailStyles.optionButton,
+                        selectedOption === option &&
+                          lessonDetailStyles.selectedOption,
+                        showFeedbackArea &&
+                          correctAnswerString.toLowerCase() ===
+                            option.toLowerCase() &&
+                          lessonDetailStyles.correctOption,
+                        showFeedbackArea &&
+                          !isCorrectAnswer &&
+                          selectedOption === option &&
+                          lessonDetailStyles.wrongOption,
+                      ]}
+                      onPress={() =>
+                        !showFeedbackArea && setSelectedOption(option)
+                      }
+                      disabled={showFeedbackArea}
+                    >
+                      <Text style={lessonDetailStyles.optionText}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {(currentExercise.type === "text" ||
+                currentExercise.type === "fillInTheBlanks") && (
+                <TextInput
+                  style={lessonDetailStyles.textInput}
+                  placeholder={
+                    currentExercise.type === "text"
+                      ? "Cevabınızı buraya yazın..."
+                      : "Boşluğu doldurun..."
+                  }
+                  value={userAnswer}
+                  onChangeText={setUserAnswer}
+                  editable={!showFeedbackArea}
+                />
+              )}
+
+              <TouchableOpacity
+                style={lessonDetailStyles.submitButton}
+                onPress={handleAnswer}
+                disabled={showFeedbackArea}
+              >
+                <Text style={lessonDetailStyles.submitButtonText}>
+                  Cevabı Kontrol Et
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            <QuizAnswerFeedback
+              isVisible={showFeedbackArea}
+              isCorrect={isCorrectAnswer}
+              feedbackText={feedback}
+              onContinue={handleContinueAfterFeedback}
+            />
+          </View>
         );
 
       case "summary":
         return (
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryTitle}>Ders Tamamlandı!</Text>
-            <Text style={styles.motivationText}>{motivationText}</Text>{" "}
-            <View style={styles.summaryStats}>
-              <Text style={styles.summaryStatText}>
+          <View style={lessonDetailStyles.summaryContainer}>
+            <Text style={lessonDetailStyles.summaryTitle}>
+              Ders Tamamlandı!
+            </Text>
+            <Text style={lessonDetailStyles.motivationText}>
+              {motivationText}
+            </Text>
+            <View style={lessonDetailStyles.summaryStats}>
+              <Text style={lessonDetailStyles.summaryStatText}>
                 Toplam Soru: {totalQuestions}
               </Text>
-              <Text style={styles.summaryStatText}>
+              <Text
+                style={[
+                  lessonDetailStyles.summaryStatText,
+                  lessonDetailStyles.summaryStatCorrect,
+                ]}
+              >
                 Doğru Cevap: {correctAnswersCount}
               </Text>
-              <Text style={styles.summaryStatText}>
+              <Text
+                style={[
+                  lessonDetailStyles.summaryStatText,
+                  lessonDetailStyles.summaryStatIncorrect,
+                ]}
+              >
                 Yanlış Cevap: {wrongAnswersCount}
               </Text>
-              <Text style={styles.summaryPointsText}>
+              <Text style={lessonDetailStyles.summaryPointsText}>
                 Kazanılan Puan: {earnedPoints}
               </Text>
             </View>
+
+            {!scoreUpdateCompleted ? (
+              <TouchableOpacity
+                style={lessonDetailStyles.backToPathButton}
+                onPress={completeLessonOnBackend}
+                disabled={isScoreUpdating}
+              >
+                {isScoreUpdating ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={lessonDetailStyles.backToPathButtonText}>
+                    Puanları Topla
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={lessonDetailStyles.backToPathButton}
+                onPress={() => {
+                  if (userLanguageId) {
+                    navigation.replace("AppTabs", {
+                      screen: "LearningPathScreen",
+                      params: { selectedLanguageId: userLanguageId },
+                    });
+                  } else {
+                    Alert.alert(
+                      "Bilgi Eksik",
+                      "Öğrenme yoluna dönmek için dil bilgisi gerekli. Lütfen dil seçiminizi kontrol edin."
+                    );
+                    navigation.replace("InitialLanguageSelectionScreen");
+                  }
+                }}
+              >
+                <Text style={lessonDetailStyles.backToPathButtonText}>
+                  Öğrenme Yoluna Geri Dön
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+
+      case "noQuestions":
+        return (
+          <View style={lessonDetailStyles.centered}>
+            <Text style={lessonDetailStyles.noQuestionText}>
+              Bu derste henüz egzersiz bulunmamaktadır.
+            </Text>
             <TouchableOpacity
-              style={styles.backToPathButton}
-              onPress={() => {
-                if (user?.selectedLanguageId) {
-                  navigation.replace("AppTabs", {
-                    screen: "LearningPathScreen",
-                    params: { selectedLanguageId: user.selectedLanguageId },
-                  });
-                } else {
-                  Alert.alert(
-                    "Bilgi Eksik",
-                    "Öğrenme yoluna dönmek için dil bilgisi gerekli. Lütfen dil seçiminizi kontrol edin."
-                  );
-                  navigation.replace("InitialLanguageSelectionScreen");
-                }
-              }}
+              style={lessonDetailStyles.retryButton}
+              onPress={() => navigation.goBack()}
             >
-              <Text style={styles.backToPathButtonText}>
-                Öğrenme Yoluna Geri Dön
-              </Text>
+              <Text style={lessonDetailStyles.retryButtonText}>Geri Dön</Text>
             </TouchableOpacity>
           </View>
         );
@@ -385,213 +495,7 @@ const LessonDetailScreen: React.FC = () => {
     }
   };
 
-  return <View style={styles.container}>{renderContent()}</View>;
+  return <View style={lessonDetailStyles.container}>{renderContent()}</View>;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8f8",
-    padding: 20,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 16,
-  },
-  introContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  lessonTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  lessonDescription: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 20,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  lessonInfo: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 5,
-  },
-  startButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    marginTop: 30,
-    width: "80%",
-    alignItems: "center",
-  },
-  startButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  backButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  backButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
-  },
-
-  exerciseContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  questionCounter: {
-    fontSize: 16,
-    color: "#888",
-    marginBottom: 20,
-  },
-  questionText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  optionsContainer: {
-    width: "100%",
-    marginBottom: 20,
-  },
-  optionButton: {
-    backgroundColor: "#e0e0e0",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#d0d0d0",
-  },
-  selectedOption: {
-    backgroundColor: "#cceeff",
-    borderColor: "#007AFF",
-  },
-  correctOption: {
-    backgroundColor: "#d4edda",
-    borderColor: "#28a745",
-  },
-  wrongOption: {
-    backgroundColor: "#f8d7da",
-    borderColor: "#dc3545",
-  },
-  optionText: {
-    fontSize: 18,
-    color: "#333",
-    textAlign: "center",
-  },
-  textInput: {
-    width: "90%",
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    fontSize: 18,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-  },
-  submitButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    width: "80%",
-    alignItems: "center",
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  feedbackText: {
-    fontSize: 18,
-    marginTop: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  correctFeedback: {
-    color: "#28a745",
-  },
-  wrongFeedback: {
-    color: "#dc3545",
-  },
-
-  summaryContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  summaryTitle: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  motivationText: {
-    fontSize: 20,
-    color: "#007AFF",
-    fontStyle: "italic",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  summaryStats: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
-    width: "90%",
-    alignItems: "center",
-    marginBottom: 30,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  summaryStatText: {
-    fontSize: 18,
-    color: "#555",
-    marginBottom: 10,
-  },
-  summaryPointsText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#28a745",
-    marginTop: 10,
-  },
-  backToPathButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    width: "80%",
-    alignItems: "center",
-  },
-  backToPathButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-});
 
 export default LessonDetailScreen;

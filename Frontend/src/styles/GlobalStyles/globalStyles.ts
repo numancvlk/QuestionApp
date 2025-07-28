@@ -4,7 +4,7 @@ import { StyleSheet } from "react-native";
 //STYLES
 import { Colors, Radii, Shadow } from "./colors";
 import { Spacing } from "./spacing";
-import { FontSizes } from "./typography";
+import { FontSizes, Typography } from "./typography";
 
 export const globalStyles = StyleSheet.create({
   appContainer: {
@@ -30,8 +30,20 @@ export const globalStyles = StyleSheet.create({
     paddingTop: Spacing.xLarge * 2,
   },
 
+  headerText: {
+    ...Typography.h1,
+  },
+  titleText: {
+    ...Typography.h3,
+  },
   bodyText: {
-    fontSize: FontSizes.body,
-    color: Colors.textPrimary,
+    ...Typography.body,
+    lineHeight: FontSizes.body * 1.5,
+  },
+  smallText: {
+    ...Typography.smallText,
+  },
+  buttonText: {
+    ...Typography.button,
   },
 });
