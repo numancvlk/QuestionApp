@@ -156,7 +156,6 @@ const TimedQuizScreen = () => {
     }
   }, [quizEnded, user?.selectedLanguageId]);
 
-  // Cevaplama mantığı
   const handleAnswer = async (selectedOption: string) => {
     if (quizEnded || !currentQuestion || showFeedbackArea) return;
 
@@ -183,8 +182,6 @@ const TimedQuizScreen = () => {
       console.error("[TimedQuizScreen] Cevap kontrolü hatası:", error);
       Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
       setShowFeedbackArea(false);
-    } finally {
-      setLoadingQuestion(false);
     }
   };
 
@@ -192,6 +189,8 @@ const TimedQuizScreen = () => {
     setShowFeedbackArea(false);
     if (!quizEnded) {
       fetchQuestion();
+    } else {
+      setLoadingQuestion(false);
     }
   }, [fetchQuestion, quizEnded]);
 
@@ -274,12 +273,7 @@ const TimedQuizScreen = () => {
         Bu Turdaki Puan: {currentQuizScore}
       </Text>
 
-      {loadingQuestion ? (
-        <View style={globalStyles.centeredContainer}>
-          <ActivityIndicator size="large" color={Colors.accentPrimary} />
-          <Text style={globalStyles.bodyText}>Soru Yükleniyor...</Text>
-        </View>
-      ) : currentQuestion ? (
+      {currentQuestion ? (
         <QuizQuestionComponent
           question={currentQuestion}
           onAnswer={handleAnswer}
@@ -287,15 +281,20 @@ const TimedQuizScreen = () => {
           key={currentQuestion._id}
         />
       ) : (
-        <View style={globalStyles.centeredContainer}>
-          <Text style={styles.noQuestionText}>Soru bulunamadı.</Text>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={fetchQuestion}
-          >
-            <Text style={styles.refreshButtonText}>Yeni Soru Yükle</Text>
-          </TouchableOpacity>
-        </View>
+        !loadingQuestion && (
+          <View style={globalStyles.centeredContainer}>
+            <Text style={styles.noQuestionText}>
+              Soru bulunamadı veya yüklenemedi.
+            </Text>
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={fetchQuestion}
+              disabled={loadingQuestion}
+            >
+              <Text style={styles.refreshButtonText}>Yeni Soru Yükle</Text>
+            </TouchableOpacity>
+          </View>
+        )
       )}
 
       <QuizAnswerFeedback

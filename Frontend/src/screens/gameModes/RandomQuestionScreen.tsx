@@ -1,5 +1,5 @@
 // LIBRARY
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -70,7 +70,6 @@ const RandomQuestionScreen = () => {
     }
 
     setLoadingQuestion(true);
-    setCurrentQuestion(null);
     try {
       const question = await getRandomQuestion(userLanguageId);
       setCurrentQuestion(question);
@@ -214,7 +213,7 @@ const RandomQuestionScreen = () => {
     } finally {
       setIsScoreUpdating(false);
     }
-  }, [currentQuizScore, checkAuthStatus, isScoreUpdating, user, navigation]);
+  }, [currentQuizScore, checkAuthStatus, isScoreUpdating]);
 
   const [selectedQuestionCount, setSelectedQuestionCount] =
     useState<number>(10);
@@ -246,7 +245,7 @@ const RandomQuestionScreen = () => {
     return (
       <QuizIntroScreen
         onStartQuiz={startQuiz}
-        isLoading={loadingQuestion}
+        isLoading={false}
         title="Rastgele Soru Yarışmasına Hoş Geldiniz!"
         description="Kaç soruluk bir test istediğinizi seçin."
         isRandomQuiz={true}
@@ -282,27 +281,18 @@ const RandomQuestionScreen = () => {
         Bu Turdaki Puan: {currentQuizScore}
       </Text>
 
-      {loadingQuestion ? (
-        <View style={globalStyles.centeredContainer}>
-          <ActivityIndicator size="large" color={Colors.accentPrimary} />
-          <Text style={globalStyles.bodyText}>Soru Yükleniyor...</Text>
-        </View>
-      ) : currentQuestion ? (
+      {currentQuestion ? (
         <QuizQuestionComponent
           question={currentQuestion}
           onAnswer={handleAnswer}
-          disableInteractions={showFeedbackArea || loadingQuestion}
+          disableInteractions={showFeedbackArea}
           key={currentQuestion._id}
         />
       ) : (
         <View style={globalStyles.centeredContainer}>
-          <Text style={styles.noQuestionText}>Soru bulunamadı.</Text>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={fetchQuestion}
-          >
-            <Text style={styles.refreshButtonText}>Yeni Soru Yükle</Text>
-          </TouchableOpacity>
+          <Text style={styles.noQuestionText}>
+            Soru bulunamadı veya yüklenemedi.
+          </Text>
         </View>
       )}
 
