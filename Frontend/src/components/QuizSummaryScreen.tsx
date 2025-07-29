@@ -13,12 +13,13 @@ import {
 import { Colors, Radii } from "../styles/GlobalStyles/colors";
 import { Spacing } from "../styles/GlobalStyles/spacing";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
-import { FontSizes } from "../styles/GlobalStyles/typography";
+import { lessonDetailStyles } from "../styles/ScreenStyles/LessonDetailScreen.style";
 
 //MY SCRIPTS
 import { useNavigation } from "@react-navigation/native";
-import { RootStackNavigationProp } from "../navigation/types";
+import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 interface QuizSummaryScreenProps {
   earnedPoints: number;
@@ -45,7 +46,7 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
   totalQuestions,
   motivationMessage,
 }) => {
-  const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
 
   const handleGoHomeAfterPointsCollected = useCallback(() => {
@@ -78,23 +79,37 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
   ]);
 
   return (
-    <View style={globalStyles.centeredContainer}>
-      <Text style={styles.quizCompleteText}>Quiz Bitti!</Text>
-      <Text style={styles.finalScoreText}>
+    <View style={lessonDetailStyles.summaryContainer}>
+      <Text style={lessonDetailStyles.summaryTitle}>Quiz Bitti!</Text>
+      <Text style={lessonDetailStyles.summaryPointsText}>
         Bu Quizden Kazanılan Puan: {earnedPoints}
       </Text>
 
       {motivationMessage && (
-        <Text style={styles.motivationText}>{motivationMessage}</Text>
+        <Text style={lessonDetailStyles.motivationText}>
+          {motivationMessage}
+        </Text>
       )}
 
       {totalQuestions !== undefined && totalQuestions > 0 && (
-        <View style={styles.statsContainer}>
-          <Text style={styles.statText}>Toplam Soru: {totalQuestions}</Text>
-          <Text style={[styles.statText, { color: Colors.successGreen }]}>
+        <View style={lessonDetailStyles.summaryStats}>
+          <Text style={lessonDetailStyles.summaryStatText}>
+            Toplam Soru: {totalQuestions}
+          </Text>
+          <Text
+            style={[
+              lessonDetailStyles.summaryStatText,
+              lessonDetailStyles.summaryStatCorrect,
+            ]}
+          >
             Doğru Cevap: {correctAnswers}
           </Text>
-          <Text style={[styles.statText, { color: Colors.errorRed }]}>
+          <Text
+            style={[
+              lessonDetailStyles.summaryStatText,
+              lessonDetailStyles.summaryStatIncorrect,
+            ]}
+          >
             Yanlış Cevap: {incorrectAnswers}
           </Text>
         </View>
@@ -102,14 +117,16 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
 
       {!scoreUpdateCompleted ? (
         <TouchableOpacity
-          style={styles.actionButton}
+          style={lessonDetailStyles.backToPathButton}
           onPress={onCollectPoints}
           disabled={isScoreUpdating}
         >
           {isScoreUpdating ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <Text style={styles.actionButtonText}>Puanı Al</Text>
+            <Text style={lessonDetailStyles.backToPathButtonText}>
+              Puanı Al
+            </Text>
           )}
         </TouchableOpacity>
       ) : (
@@ -118,16 +135,12 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
             Puanınız hesabınıza eklendi!
           </Text>
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                marginTop: Spacing.medium,
-                backgroundColor: Colors.accentPrimary,
-              },
-            ]}
+            style={lessonDetailStyles.backToPathButton}
             onPress={handleGoHomeAfterPointsCollected}
           >
-            <Text style={styles.actionButtonText}>Ana Menüye Dön</Text>
+            <Text style={lessonDetailStyles.backToPathButtonText}>
+              Ana Menüye Dön
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -136,76 +149,17 @@ const QuizSummaryScreen: React.FC<QuizSummaryScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  quizCompleteText: {
-    fontSize: FontSizes.h2,
-    fontWeight: "bold",
-    color: Colors.textPrimary,
-    marginBottom: Spacing.medium,
-  },
-  finalScoreText: {
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
-    color: Colors.accentPrimary,
-    marginBottom: Spacing.large,
-  },
-  motivationText: {
-    fontSize: FontSizes.body,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    fontStyle: "italic",
-    marginBottom: Spacing.medium,
-    paddingHorizontal: Spacing.medium,
-  },
-  statsContainer: {
-    marginBottom: Spacing.large,
-    alignItems: "center",
-  },
-  statText: {
-    fontSize: FontSizes.body,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.small / 2,
-    fontWeight: "bold",
-  },
-  actionButton: {
-    backgroundColor: Colors.accentPrimary,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
-    borderRadius: Radii.medium,
-    marginTop: Spacing.large,
-    minWidth: 180,
-    alignItems: "center",
-  },
-  actionButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
-  },
   scoreCollectedContainer: {
     alignItems: "center",
+    marginTop: Spacing.large,
   },
   scoreCollectedText: {
-    fontSize: FontSizes.body,
+    ...globalStyles.bodyText,
     color: Colors.accentPrimary,
-    marginTop: Spacing.large,
+    marginTop: Spacing.medium,
     marginBottom: Spacing.medium,
     fontWeight: "bold",
     textAlign: "center",
-  },
-  playAgainButton: {
-    backgroundColor: Colors.accentPrimary,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
-    borderRadius: Radii.medium,
-    marginTop: Spacing.small,
-    minWidth: 180,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  playAgainButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
   },
 });
 

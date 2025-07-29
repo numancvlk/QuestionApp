@@ -82,6 +82,7 @@ export interface QuizQuestion {
   options: string[];
   lessonId?: string;
   type?: string;
+  correctAnswer: string | string[];
 }
 
 export interface ApiResponse<T> {

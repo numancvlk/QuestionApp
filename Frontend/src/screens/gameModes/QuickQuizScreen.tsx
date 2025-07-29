@@ -154,13 +154,13 @@ const QuickQuizScreen = () => {
       setIsCorrectAnswer(result.isCorrect);
       if (result.isCorrect) {
         setEarnedPointsThisQuiz((prevScore) => prevScore + result.pointsEarned);
-        setAnswerFeedbackText(`Doğru! (+${result.pointsEarned} puan)`);
+        setAnswerFeedbackText(`DOĞRU! (+${result.pointsEarned} puan)`);
         setCorrectAnswersCount((prev) => prev + 1);
       } else {
         const explanation = result.explanation
-          ? `Açıklama: ${result.explanation}`
+          ? `${result.explanation}`
           : "Doğru cevap bu değil.";
-        setAnswerFeedbackText(`Yanlış. ${explanation}`);
+        setAnswerFeedbackText(`YANLIŞ!. ${explanation}`);
         setIncorrectAnswersCount((prev) => prev + 1);
       }
       setShowFeedbackArea(true);

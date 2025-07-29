@@ -9,10 +9,9 @@ import {
 } from "react-native";
 
 //STYLES
-import { Colors, Radii } from "../styles/GlobalStyles/colors";
-import { Spacing } from "../styles/GlobalStyles/spacing";
-import { FontSizes } from "../styles/GlobalStyles/typography";
+import { Colors } from "../styles/GlobalStyles/colors";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
+import { lessonDetailStyles } from "../styles/ScreenStyles/LessonDetailScreen.style";
 
 export type QuizLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
 
@@ -54,12 +53,13 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
   };
 
   return (
-    <View style={globalStyles.centeredContainer}>
-      <Text style={styles.introTitle}>{title}</Text>
-      <Text style={styles.introDescription}>{description}</Text>
+    <View style={lessonDetailStyles.introContainer}>
+      <Text style={lessonDetailStyles.lessonTitle}>{title}</Text>
+      <Text style={lessonDetailStyles.lessonDescription}>{description}</Text>
 
       {isRandomQuiz && (
         <View style={styles.levelSelectionContainer}>
+          <Text style={styles.levelSelectionLabel}>Soru Sayısı:</Text>
           {questionCountOptions.map((count) => (
             <TouchableOpacity
               key={count}
@@ -88,6 +88,7 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
 
       {!isTimedQuiz && !isRandomQuiz && (
         <View style={styles.levelSelectionContainer}>
+          <Text style={styles.levelSelectionLabel}>Zorluk Seviyesi:</Text>
           {["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"].map((level) => (
             <TouchableOpacity
               key={level}
@@ -104,7 +105,13 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
                   selectedLevel === level && styles.selectedLevelButtonText,
                 ]}
               >
-                {level}
+                {level === "BEGINNER"
+                  ? "Başlangıç"
+                  : level === "INTERMEDIATE"
+                  ? "Orta"
+                  : level === "ADVANCED"
+                  ? "İleri"
+                  : "Uzman"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -112,14 +119,14 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
       )}
 
       <TouchableOpacity
-        style={styles.startButton}
+        style={lessonDetailStyles.startButton}
         onPress={handleStart}
         disabled={isLoading || (isRandomQuiz && !selectedQuestionCount)}
       >
         {isLoading ? (
           <ActivityIndicator size="small" color={Colors.white} />
         ) : (
-          <Text style={styles.startButtonText}>Başla</Text>
+          <Text style={lessonDetailStyles.startButtonText}>Başla</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -127,60 +134,46 @@ const QuizIntroScreen: React.FC<QuizIntroScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  introTitle: {
-    fontSize: FontSizes.h1,
-    fontWeight: "bold",
-    color: Colors.textPrimary,
-    marginBottom: Spacing.medium,
-  },
-  introDescription: {
-    fontSize: FontSizes.body,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginBottom: Spacing.large,
-    paddingHorizontal: Spacing.large,
-  },
   levelSelectionContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    marginBottom: Spacing.large,
+    marginBottom: 25,
+    width: "100%",
+    paddingHorizontal: 10,
+  },
+  levelSelectionLabel: {
+    ...globalStyles.bodyText,
+    fontWeight: "bold",
+    color: Colors.textPrimary,
+    marginBottom: 15,
+    width: "100%",
+    textAlign: "center",
   },
   levelButton: {
     backgroundColor: Colors.backgroundSecondary,
-    paddingVertical: Spacing.small,
-    paddingHorizontal: Spacing.medium,
-    borderRadius: Radii.medium,
-    margin: Spacing.xSmall,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    margin: 5,
     borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  selectedLevelButton: {
-    backgroundColor: Colors.accentPrimary,
-    borderColor: Colors.accentPrimary,
-  },
-  levelButtonText: {
-    fontSize: FontSizes.body,
-    color: Colors.textPrimary,
-    fontWeight: "bold",
-  },
-  selectedLevelButtonText: {
-    color: Colors.white,
-  },
-  startButton: {
-    backgroundColor: Colors.accentPrimary,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
-    borderRadius: Radii.medium,
-    marginTop: Spacing.large,
-    minWidth: 150,
+    borderColor: Colors.lightGray,
+    minWidth: 120,
     alignItems: "center",
     justifyContent: "center",
   },
-  startButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.h3,
-    fontWeight: "bold",
+  selectedLevelButton: {
+    backgroundColor: Colors.primary + "1A",
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
+  levelButtonText: {
+    ...globalStyles.bodyText,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  selectedLevelButtonText: {
+    color: Colors.textPrimary,
   },
 });
 

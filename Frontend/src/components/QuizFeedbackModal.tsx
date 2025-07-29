@@ -31,7 +31,7 @@ const QuizAnswerFeedback: React.FC<QuizAnswerFeedbackProps> = ({
     <View style={[styles.container, { backgroundColor }]}>
       <Text style={styles.feedbackText}>{feedbackText}</Text>
       <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
-        <Text style={styles.continueButtonText}>{continueButtonText}</Text>
+        <Text style={styles.continueButtonText}>Devam</Text>
       </TouchableOpacity>
     </View>
   );
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FontSizes.body,
     fontWeight: "bold",
-    color: Colors.textPrimary,
+    color: Colors.black,
   },
 });
 

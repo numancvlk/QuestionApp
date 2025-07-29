@@ -20,7 +20,6 @@ export type RootStackParamList = {
     screen: keyof AppTabParamList;
     params?: AppTabParamList[keyof AppTabParamList];
   };
-  DailyQuestionModal: undefined;
 };
 
 export type RootStackNavigationProp<
@@ -38,11 +37,6 @@ export type LearningPathScreenNavigationProp =
   AppTabScreenNavigationProp<"LearningPathScreen">;
 export type QuickQuizScreenNavigationProp =
   AppTabScreenNavigationProp<"QuickQuizScreen">;
-
-export type DailyQuestionModalNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "DailyQuestionModal"
->;
 
 export type LearningPathScreenRouteProp = RouteProp<
   AppTabParamList,

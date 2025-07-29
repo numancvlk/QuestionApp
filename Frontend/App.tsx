@@ -1,7 +1,7 @@
 //LIBRARY
-import React, { useCallback, useEffect } from "react";
+import React from "react";
 import { View, Text, ActivityIndicator } from "react-native";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -10,8 +10,6 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 //MY SCRIPTS
 import { RootStackParamList, AppTabParamList } from "./src/navigation/types";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
-import { checkDailyQuestionStatus } from "./src/api/userApi";
-import { RootStackNavigationProp } from "./src/navigation/types";
 
 // Screens
 import LoginScreen from "./src/screens/auth/LoginScreen";
@@ -23,7 +21,6 @@ import LeaderboardScreen from "./src/screens/core/LeaderboardScreen";
 import QuickQuizScreen from "./src/screens/gameModes/QuickQuizScreen";
 import TimedQuizScreen from "./src/screens/gameModes/TimedQuizScreen";
 import RandomQuestionScreen from "./src/screens/gameModes/RandomQuestionScreen";
-import DailyQuestionScreen from "./src/screens/gameModes/DailyQuestionScreen";
 
 //STYLES
 import { Colors } from "./src/styles/GlobalStyles/colors";
@@ -102,27 +99,7 @@ const AppTabs: React.FC = () => {
 };
 
 const AppNavigator: React.FC = () => {
-  const { isLoading, isAuthenticated, user, initialRoute } = useAuth();
-  const navigation = useNavigation<RootStackNavigationProp<"AppTabs">>();
-
-  const checkAndShowDailyQuestion = useCallback(async () => {
-    if (isAuthenticated && user?.selectedLanguageId && navigation.isFocused()) {
-      try {
-        const status = await checkDailyQuestionStatus();
-        if (!status.hasAnsweredToday) {
-          navigation.navigate("DailyQuestionModal");
-        }
-      } catch (error) {
-        console.error("Günün sorusu durumu kontrol hatası:", error);
-      }
-    }
-  }, [isAuthenticated, user?.selectedLanguageId, navigation]);
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      checkAndShowDailyQuestion();
-    }
-  }, [isLoading, isAuthenticated, checkAndShowDailyQuestion]);
+  const { isLoading, initialRoute } = useAuth();
 
   if (isLoading || initialRoute === undefined) {
     return (
@@ -146,15 +123,6 @@ const AppNavigator: React.FC = () => {
       />
       <STACK.Screen name="AppTabs" component={AppTabs} />
       <STACK.Screen name="LessonDetailScreen" component={LessonDetailScreen} />
-      <STACK.Screen
-        name="DailyQuestionModal"
-        component={DailyQuestionScreen}
-        options={{
-          presentation: "modal",
-          headerShown: false,
-          animation: "fade",
-        }}
-      />
     </STACK.Navigator>
   );
 };
