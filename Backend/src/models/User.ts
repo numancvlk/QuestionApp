@@ -1,4 +1,4 @@
-//LIBRARY
+// LIBRARY
 import mongoose, { Document as MongooseDocument } from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -8,6 +8,7 @@ export interface ILanguageProgressValue {
 }
 
 export interface IUser extends MongooseDocument {
+  _id: mongoose.Types.ObjectId;
   username: string;
   email: string;
   passwordHash: string;
@@ -24,8 +25,9 @@ export interface IUser extends MongooseDocument {
     }
   >;
   achievements: string[];
-  comparePassword: (candidatePassword: string) => Promise<boolean>;
   lastDailyQuestionAnswered: Date | null;
+  profileImage?: string | null;
+  comparePassword: (candidatePassword: string) => Promise<boolean>;
 }
 
 const UserSchema = new mongoose.Schema(
@@ -97,6 +99,10 @@ const UserSchema = new mongoose.Schema(
     },
     lastDailyQuestionAnswered: {
       type: Date,
+      default: null,
+    },
+    profileImage: {
+      type: String,
       default: null,
     },
   },

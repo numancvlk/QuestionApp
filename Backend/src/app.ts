@@ -12,6 +12,7 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import languageRoutes from "./routes/languageRoutes";
 import lessonRoutes from "./routes/lessonRoutes";
+import leaderboardRoutes from "./routes/leaderBoardRoutes";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/languages", languageRoutes);
 app.use("/api/lessons", lessonRoutes);
+app.use("/api/leaderboards", leaderboardRoutes);
 
 app.use(errorHandler);
 

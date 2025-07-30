@@ -12,6 +12,20 @@ interface DailyQuestionStatus {
   nextAttemptTime?: string;
 }
 
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  profileImageUri: string | null;
+  score: number;
+}
+
+interface PastLeaderboardData {
+  month: string;
+  year: number;
+  data: LeaderboardEntry[];
+}
+
 const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
 const API = axios.create({
@@ -257,6 +271,65 @@ export const checkQuizAnswer = async (
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message || "Failed to check quiz answer."
+    );
+  }
+};
+
+export const getCurrentLeaderboard = async (): Promise<LeaderboardEntry[]> => {
+  try {
+    const response = await API.get("/leaderboards/current");
+    return response.data;
+  } catch (error: any) {
+    console.error("Backend'den mevcut liderlik panosu çekilirken hata:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        "Mevcut liderlik panosu verileri çekilemedi."
+    );
+  }
+};
+
+export const getPastLeaderboards =
+  async (): Promise<PastLeaderboardData | null> => {
+    try {
+      const response = await API.get("/leaderboards/past");
+      // Backend null dönebildiği için kontrol ediyoruz
+      return response.data || null;
+    } catch (error: any) {
+      console.error(
+        "Backend'den geçen ay liderlik panosu çekilirken hata:",
+        error
+      );
+      throw new Error(
+        error.response?.data?.message ||
+          "Geçen ay liderlik panosu verileri çekilemedi."
+      );
+    }
+  };
+
+//KALSINLAR YİNE
+export const updateLeaderboardScore = async (): Promise<{
+  message: string;
+  entry?: LeaderboardEntry;
+}> => {
+  try {
+    const response = await API.post("/leaderboards/update", {});
+    return response.data;
+  } catch (error: any) {
+    console.error("Liderlik panosu skoru güncellenirken hata:", error);
+    throw new Error(
+      error.response?.data?.message || "Liderlik panosu skoru güncellenemedi."
+    );
+  }
+};
+
+export const resetMonthlyScores = async (): Promise<{ message: string }> => {
+  try {
+    const response = await API.post("/leaderboards/reset", {});
+    return response.data;
+  } catch (error: any) {
+    console.error("Aylık liderlik panosu sıfırlanırken hata:", error);
+    throw new Error(
+      error.response?.data?.message || "Aylık liderlik panosu sıfırlanamadı."
     );
   }
 };

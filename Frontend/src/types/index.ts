@@ -123,3 +123,11 @@ export interface DailyQuestionStatusResponse {
   hasAnsweredToday: boolean;
   nextAttemptTime?: string;
 }
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  profileImageUri: string | null;
+  score: number;
+}
