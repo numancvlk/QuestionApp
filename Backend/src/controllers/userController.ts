@@ -191,57 +191,57 @@ export const completeLesson = asyncHandler(
 
     const foundUser = await User.findById(userId);
 
-    if (foundUser) {
-      foundUser.globalScore += earnedPoints;
-
-      const selectedLangId = foundUser.selectedLanguageId?.toString();
-
-      if (selectedLangId) {
-        let langProgressData: ILanguageProgressValue | undefined =
-          foundUser.languageProgress.get(selectedLangId);
-
-        if (!langProgressData) {
-          langProgressData = {
-            completedLessonIds: [],
-            lastVisitedLessonId: null,
-          };
-        }
-
-        const lessonObjectId = new mongoose.Types.ObjectId(lessonId);
-
-        if (
-          !langProgressData.completedLessonIds.some(
-            (id: mongoose.Types.ObjectId) => id.equals(lessonObjectId)
-          )
-        ) {
-          langProgressData.completedLessonIds.push(lessonObjectId);
-        }
-
-        langProgressData.lastVisitedLessonId = lessonObjectId;
-
-        foundUser.languageProgress.set(selectedLangId, langProgressData);
-      } else {
-        console.warn(
-          `User ${foundUser.username} (${foundUser._id}) has no selected language. Lesson completion not saved to language progress.`
-        );
-      }
-
-      if (isDailyQuestion) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        foundUser.lastDailyQuestionAnswered = today;
-      }
-
-      await foundUser.save();
-
-      res.status(200).json({
-        success: true,
-        message: "Lesson completed and points updated successfully.",
-        user: foundUser.toObject(),
-      });
-    } else {
+    if (!foundUser) {
       res.status(404);
       throw new Error("User not found.");
     }
+
+    foundUser.globalScore += earnedPoints;
+
+    const selectedLangId = foundUser.selectedLanguageId?.toString();
+
+    if (selectedLangId) {
+      let langProgressData = foundUser.languageProgress.get(selectedLangId);
+
+      if (!langProgressData) {
+        langProgressData = {
+          completedLessonIds: [],
+          lastVisitedLessonId: null,
+          currentHearts: 3,
+        } as ILanguageProgressValue;
+      }
+
+      const lessonObjectId = new mongoose.Types.ObjectId(lessonId);
+
+      if (
+        !langProgressData.completedLessonIds.some(
+          (id: mongoose.Types.ObjectId) => id.equals(lessonObjectId)
+        )
+      ) {
+        langProgressData.completedLessonIds.push(lessonObjectId);
+      }
+
+      langProgressData.lastVisitedLessonId = lessonObjectId;
+
+      foundUser.languageProgress.set(selectedLangId, langProgressData);
+    } else {
+      console.warn(
+        `User ${foundUser.username} (${foundUser._id}) has no selected language. Lesson completion not saved to language progress.`
+      );
+    }
+
+    if (isDailyQuestion) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      foundUser.lastDailyQuestionAnswered = today;
+    }
+
+    await foundUser.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Lesson completed and points updated successfully.",
+      user: foundUser.toObject(),
+    });
   }
 );

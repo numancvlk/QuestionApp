@@ -1,8 +1,7 @@
 //LIBRARY
 import { Request, Response, NextFunction } from "express";
-import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
-
+import asyncHandler from "../utils/asyncHandler";
 //MY SCRIPTS
 import Lesson, { IQuestionInLesson } from "../models/Lesson";
 import User, { IUser } from "../models/User";
@@ -606,6 +605,154 @@ export const checkAnswer = asyncHandler(
       explanation,
       pointsEarned,
       message: isCorrect ? "Cevap doğru!" : "Cevap yanlış.",
+    });
+  }
+);
+
+export const checkLessonAnswer = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      res.status(401);
+      throw new Error("User not authenticated.");
+    }
+
+    const { lessonId, questionId, selectedAnswer, languageId, currentHearts } =
+      req.body;
+
+    if (
+      !lessonId ||
+      !questionId ||
+      selectedAnswer === undefined ||
+      !languageId ||
+      currentHearts === undefined
+    ) {
+      res.status(400);
+      throw new Error(
+        "Lesson ID, question ID, selected answer, language ID, and current hearts are required."
+      );
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      res.status(404);
+      throw new Error("Lesson not found.");
+    }
+    const exercise = lesson.exercises.find(
+      (ex) => ex._id?.toString() === questionId
+    );
+    if (!exercise) {
+      res.status(404);
+      throw new Error("Exercise not found within the lesson.");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found.");
+    }
+
+    const languageProgress = user.languageProgress.get(languageId);
+    if (!languageProgress) {
+      res.status(404);
+      throw new Error("User progress for this language not found.");
+    }
+
+    const isCompleted = languageProgress.completedLessonIds.includes(
+      new mongoose.Types.ObjectId(lessonId)
+    );
+
+    let isCorrect = false;
+    let pointsEarned = 0;
+    let newHearts = currentHearts;
+    let explanation = exercise.explanation || "";
+    let message = "";
+
+    isCorrect = exercise.correctAnswer.some(
+      (ans) => ans.toLowerCase().trim() === selectedAnswer.toLowerCase().trim()
+    );
+
+    if (!isCompleted) {
+      if (isCorrect) {
+        pointsEarned = 10;
+        user.globalScore = (user.globalScore || 0) + pointsEarned;
+        message = "Cevap doğru! Puanınız güncellendi.";
+        await user.save();
+      } else {
+        newHearts = Math.max(0, newHearts - 1);
+        explanation =
+          exercise.explanation ||
+          `Doğru cevap: ${exercise.correctAnswer.join(", ")}`;
+        message = "Yanlış cevap.";
+      }
+    } else {
+      pointsEarned = 0;
+      message = "Bu ders daha önce tamamlandı. Puan kazanılmadı.";
+      if (!isCorrect) {
+        explanation =
+          exercise.explanation ||
+          `Doğru cevap: ${exercise.correctAnswer.join(", ")}`;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      isCorrect,
+      heartsLeft: newHearts,
+      pointsEarned,
+      explanation,
+      message,
+      isCompleted,
+    });
+  }
+);
+
+export const completeLesson = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      res.status(401);
+      throw new Error("User not authenticated.");
+    }
+    const { lessonId, languageId } = req.body;
+
+    if (!lessonId || !languageId) {
+      res.status(400);
+      throw new Error("Lesson ID and language ID are required.");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found.");
+    }
+
+    const languageProgress = user.languageProgress.get(languageId);
+
+    if (!languageProgress) {
+      res.status(404);
+      throw new Error("User progress for this language not found.");
+    }
+
+    if (
+      languageProgress.completedLessonIds.includes(
+        new mongoose.Types.ObjectId(lessonId)
+      )
+    ) {
+      return res
+        .status(200)
+        .json({ success: true, message: "Lesson already marked as complete." });
+    }
+
+    languageProgress.completedLessonIds.push(
+      new mongoose.Types.ObjectId(lessonId)
+    );
+    user.languageProgress.set(languageId, languageProgress);
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Lesson marked as complete.",
+      completedLessonIds: languageProgress.completedLessonIds,
     });
   }
 );

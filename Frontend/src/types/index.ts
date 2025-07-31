@@ -13,6 +13,7 @@ export interface User {
     [key: string]: {
       completedLessonIds: ObjectId[];
       lastVisitedLessonId: ObjectId | null;
+      currentHearts?: number;
     };
   };
   achievements: string[];

@@ -26,6 +26,16 @@ interface PastLeaderboardData {
   data: LeaderboardEntry[];
 }
 
+export interface CheckLessonAnswerResponse {
+  success: boolean;
+  isCorrect: boolean;
+  heartsLeft: number;
+  pointsEarned: number;
+  explanation?: string;
+  message: string;
+  isCompleted?: boolean;
+}
+
 const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
 
 const API = axios.create({
@@ -198,21 +208,44 @@ export const checkDailyQuestionAnswer = async (
   }
 };
 
+// export const completeLesson = async (
+//   lessonId: string,
+//   earnedPoints: number,
+//   isDailyQuestion: boolean = false
+// ): Promise<User> => {
+//   try {
+//     const response = await API.post("/user/complete-lesson", {
+//       lessonId,
+//       earnedPoints,
+//       isDailyQuestion,
+//     });
+//     return response.data.user;
+//   } catch (error: any) {
+//     throw new Error(
+//       error.response?.data?.message || "Failed to complete lesson."
+//     );
+//   }
+// };
+
 export const completeLesson = async (
   lessonId: string,
-  earnedPoints: number,
-  isDailyQuestion: boolean = false
-): Promise<User> => {
+  languageId: string,
+  earnedPoints: number
+): Promise<{
+  success: boolean;
+  message: string;
+  completedLessonIds: string[];
+}> => {
   try {
-    const response = await API.post("/user/complete-lesson", {
+    const response = await API.post("/progress/complete-lesson", {
       lessonId,
+      languageId,
       earnedPoints,
-      isDailyQuestion,
     });
-    return response.data.user;
+    return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || "Failed to complete lesson."
+      error.response?.data?.message || "Ders tamamlama işlemi başarısız oldu."
     );
   }
 };
@@ -292,7 +325,6 @@ export const getPastLeaderboards =
   async (): Promise<PastLeaderboardData | null> => {
     try {
       const response = await API.get("/leaderboards/past");
-      // Backend null dönebildiği için kontrol ediyoruz
       return response.data || null;
     } catch (error: any) {
       console.error(
@@ -330,6 +362,30 @@ export const resetMonthlyScores = async (): Promise<{ message: string }> => {
     console.error("Aylık liderlik panosu sıfırlanırken hata:", error);
     throw new Error(
       error.response?.data?.message || "Aylık liderlik panosu sıfırlanamadı."
+    );
+  }
+};
+
+export const checkLessonAnswer = async (
+  languageId: string,
+  lessonId: string,
+  questionId: string,
+  selectedAnswer: string,
+  currentHearts: number
+): Promise<CheckLessonAnswerResponse> => {
+  try {
+    const response = await API.post("/progress/check-lesson-answer", {
+      languageId,
+      lessonId,
+      questionId,
+      selectedAnswer,
+      currentHearts,
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+        "Ders cevabı kontrol edilirken hata oluştu."
     );
   }
 };

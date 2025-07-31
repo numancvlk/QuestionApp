@@ -251,4 +251,32 @@ export const lessonDetailStyles = StyleSheet.create({
     ...globalStyles.buttonText,
     color: Colors.white,
   },
+  gameOverTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: Colors.error,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  gameOverText: {
+    fontSize: 18,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  heartsContainer: {
+    alignSelf: "center",
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  heartsText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: Colors.accentPrimary,
+  },
 });

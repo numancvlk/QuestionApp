@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 export interface ILanguageProgressValue {
   completedLessonIds: mongoose.Types.ObjectId[];
   lastVisitedLessonId?: mongoose.Types.ObjectId | null;
+  currentHearts: number;
 }
 
 export interface IUser extends MongooseDocument {
@@ -17,13 +18,7 @@ export interface IUser extends MongooseDocument {
   lastActiveDate: Date;
   role: "user" | "admin";
   selectedLanguageId?: mongoose.Types.ObjectId | null;
-  languageProgress: Map<
-    string,
-    {
-      completedLessonIds: mongoose.Types.ObjectId[];
-      lastVisitedLessonId?: mongoose.Types.ObjectId | null;
-    }
-  >;
+  languageProgress: Map<string, ILanguageProgressValue>;
   achievements: string[];
   lastDailyQuestionAnswered: Date | null;
   profileImage?: string | null;
@@ -87,6 +82,10 @@ const UserSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Lesson",
             default: null,
+          },
+          currentHearts: {
+            type: Number,
+            default: 3,
           },
         },
         { _id: false }

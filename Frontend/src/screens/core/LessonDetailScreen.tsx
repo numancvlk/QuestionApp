@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  StyleSheet,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
 //MY SCRIPTS
-import axiosInstance from "../../utils/axiosInstance";
 import { Lesson } from "../../types";
 import {
   RootStackNavigationProp,
@@ -21,12 +21,33 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { getRandomMotivationMessage } from "../../utils/motivationMessages";
 import QuizAnswerFeedback from "../../components/QuizFeedbackModal";
-import { checkQuizAnswer, updateScore } from "../../api/userApi";
+import {
+  getLessonById,
+  checkLessonAnswer,
+  completeLesson,
+} from "../../api/userApi";
 
 // STYLES
 import { globalStyles } from "../../styles/GlobalStyles/globalStyles";
 import { Colors } from "../../styles/GlobalStyles/colors";
 import { lessonDetailStyles } from "../../styles/ScreenStyles/LessonDetailScreen.style";
+
+const updatedLessonDetailStyles = StyleSheet.create({
+  ...lessonDetailStyles,
+  gameOverTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: Colors.error,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  gameOverText: {
+    fontSize: 18,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+});
 
 const LessonDetailScreen: React.FC = () => {
   const route = useRoute<LessonDetailScreenRouteProp>();
@@ -38,29 +59,23 @@ const LessonDetailScreen: React.FC = () => {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
   const [currentStep, setCurrentStep] = useState<
-    "intro" | "exercises" | "feedback" | "summary" | "noQuestions"
+    "intro" | "exercises" | "feedback" | "summary" | "noQuestions" | "gameOver"
   >("intro");
-
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-
   const [feedback, setFeedback] = useState<string>("");
   const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null);
   const [showFeedbackArea, setShowFeedbackArea] = useState(false);
-
   const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(0);
-  const [wrongAnswersCount, setWrongAnswersCount] = useState<number>(0);
   const [earnedPoints, setEarnedPoints] = useState<number>(0);
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [motivationText, setMotivationText] = useState<string>("");
 
-  const [isScoreUpdating, setIsScoreUpdating] = useState(false);
-  const [scoreUpdateCompleted, setScoreUpdateCompleted] = useState(false);
-
+  const [hearts, setHearts] = useState<number>(3);
   const userLanguageId = user?.selectedLanguageId;
+  const [isLessonCompleted, setIsLessonCompleted] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchLessonDetail = async () => {
@@ -69,14 +84,23 @@ const LessonDetailScreen: React.FC = () => {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
         console.log(`[LessonDetailScreen] Ders çekiliyor: ${lessonId}`);
-        const response = await axiosInstance.get(`/lessons/${lessonId}`);
-        const fetchedLesson: Lesson = response.data.lesson;
+        const fetchedLesson = await getLessonById(lessonId);
         setLesson(fetchedLesson);
         setTotalQuestions(fetchedLesson.exercises?.length || 0);
+
+        const userProgress = user?.languageProgress?.[userLanguageId];
+        if (userProgress) {
+          setHearts(3);
+          setIsLessonCompleted(
+            userProgress.completedLessonIds.includes(lessonId)
+          );
+        } else {
+          setHearts(3);
+          setIsLessonCompleted(false);
+        }
         setError(null);
         console.log(
           `[LessonDetailScreen] Ders ${fetchedLesson.title} yüklendi.`
@@ -89,9 +113,14 @@ const LessonDetailScreen: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchLessonDetail();
-  }, [lessonId, userLanguageId]);
+  }, [lessonId, userLanguageId, user?.languageProgress]);
+
+  useEffect(() => {
+    if (hearts <= 0 && currentStep !== "gameOver") {
+      setCurrentStep("gameOver");
+    }
+  }, [hearts, currentStep]);
 
   useEffect(() => {
     const getMotivation = () => {
@@ -108,22 +137,12 @@ const LessonDetailScreen: React.FC = () => {
 
   const handleAnswer = async () => {
     const currentExercise = lesson?.exercises?.[currentExerciseIndex];
-
-    if (!currentExercise) {
-      Alert.alert("Hata", "Egzersiz bilgisi bulunamadı.");
-      return;
-    }
-
-    if (!currentExercise._id) {
-      Alert.alert(
-        "Hata",
-        "Egzersiz ID'si bulunamadı. Lütfen dersi tekrar yükleyin."
-      );
+    if (!currentExercise || !currentExercise._id || !userLanguageId) {
+      Alert.alert("Hata", "Eksik bilgi: Egzersiz veya dil bulunamadı.");
       return;
     }
 
     let answerToEvaluate: string = "";
-
     if (currentExercise.type === "multipleChoice") {
       if (selectedOption === null) {
         Alert.alert("Uyarı", "Lütfen bir seçenek seçin.");
@@ -138,36 +157,42 @@ const LessonDetailScreen: React.FC = () => {
       answerToEvaluate = userAnswer;
     }
 
-    if (answerToEvaluate === undefined || answerToEvaluate === null) {
-      Alert.alert(
-        "Hata",
-        "Cevap değerlendirilirken beklenmedik bir sorun oluştu."
-      );
-      return;
-    }
-
     try {
-      const result = await checkQuizAnswer(
+      const result = await checkLessonAnswer(
+        userLanguageId,
+        lessonId,
         currentExercise._id as string,
-        answerToEvaluate as string
+        answerToEvaluate as string,
+        hearts
       );
 
-      setIsCorrectAnswer(result.isCorrect);
-      if (result.isCorrect) {
-        setEarnedPoints((prev) => prev + result.pointsEarned);
-        setFeedback(`Doğru! (+${result.pointsEarned} puan)`);
+      const { isCorrect, heartsLeft, pointsEarned, explanation, isCompleted } =
+        result;
+
+      setIsCorrectAnswer(isCorrect);
+      setHearts(heartsLeft);
+
+      if (isCompleted) {
+        setFeedback("Bu dersi daha önce tamamladın. Puan kazanılmadı.");
+      } else if (isCorrect) {
+        setEarnedPoints((prev) => prev + pointsEarned);
+        setFeedback(`Doğru! (+${pointsEarned} puan)`);
         setCorrectAnswersCount((prev) => prev + 1);
       } else {
-        const explanation = result.explanation
-          ? `Açıklama: ${result.explanation}`
+        const finalExplanation = explanation
+          ? `Açıklama: ${explanation}`
           : "Doğru cevap bu değil.";
-        setFeedback(`Yanlış. ${explanation}`);
-        setWrongAnswersCount((prev) => prev + 1);
+        setFeedback(`Yanlış. ${finalExplanation}`);
       }
+
       setShowFeedbackArea(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("[LessonDetailScreen] Cevap kontrolü hatası:", error);
-      Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
+      Alert.alert(
+        "Hata",
+        error.response?.data?.message ||
+          "Cevap kontrol edilirken bir sorun oluştu."
+      );
       setShowFeedbackArea(false);
     }
   };
@@ -176,6 +201,11 @@ const LessonDetailScreen: React.FC = () => {
     setShowFeedbackArea(false);
     setUserAnswer("");
     setSelectedOption(null);
+
+    if (hearts <= 0) {
+      setCurrentStep("gameOver");
+      return;
+    }
 
     if (
       lesson &&
@@ -186,35 +216,47 @@ const LessonDetailScreen: React.FC = () => {
     } else {
       setCurrentStep("summary");
     }
-  }, [currentExerciseIndex, lesson]);
+  }, [currentExerciseIndex, lesson, hearts]);
 
   const completeLessonOnBackend = async () => {
-    if (!lesson) return;
-    setIsScoreUpdating(true);
+    if (!lesson || !userLanguageId) {
+      Alert.alert("Hata", "Ders tamamlama için gerekli veriler eksik.");
+      return;
+    }
+
+    if (isLessonCompleted) {
+      Alert.alert("Bilgi", "Bu ders zaten tamamlandı. Puan kazanılmaz.");
+      navigation.replace("AppTabs", {
+        screen: "LearningPathScreen",
+        params: { selectedLanguageId: userLanguageId },
+      });
+      return;
+    }
+
     try {
-      await updateScore(earnedPoints);
+      await completeLesson(lessonId, userLanguageId, earnedPoints);
       await checkAuthStatus();
-      setScoreUpdateCompleted(true);
-      console.log("Ders başarıyla tamamlandı ve puan güncellendi.");
+      Alert.alert(
+        "Tebrikler!",
+        "Dersi başarıyla tamamladınız ve puanları topladınız."
+      );
+      navigation.replace("AppTabs", {
+        screen: "LearningPathScreen",
+        params: { selectedLanguageId: userLanguageId },
+      });
     } catch (error: any) {
       console.error(
-        "Ders tamamlama/puan güncelleme API hatası:",
+        "Ders tamamlama API hatası:",
         error.response?.data || error.message
       );
-      Alert.alert(
-        "Hata",
-        "Puan güncelleme sırasında bir sunucu hatası oluştu."
-      );
-      setScoreUpdateCompleted(true);
-    } finally {
-      setIsScoreUpdating(false);
+      Alert.alert("Hata", "Ders tamamlama sırasında bir sunucu hatası oluştu.");
     }
   };
 
   const renderContent = () => {
     if (loading) {
       return (
-        <View style={lessonDetailStyles.centered}>
+        <View style={updatedLessonDetailStyles.centered}>
           <ActivityIndicator size="large" color={Colors.accentPrimary} />
           <Text style={globalStyles.bodyText}>Ders yükleniyor...</Text>
         </View>
@@ -223,36 +265,39 @@ const LessonDetailScreen: React.FC = () => {
 
     if (error) {
       return (
-        <View style={lessonDetailStyles.centered}>
-          <Text style={lessonDetailStyles.errorText}>{error}</Text>
+        <View style={updatedLessonDetailStyles.centered}>
+          <Text style={updatedLessonDetailStyles.errorText}>{error}</Text>
           <TouchableOpacity
-            style={lessonDetailStyles.retryButton}
+            style={updatedLessonDetailStyles.retryButton}
             onPress={() => {
               setError(null);
               setLoading(true);
             }}
           >
-            <Text style={lessonDetailStyles.retryButtonText}>Tekrar Dene</Text>
+            <Text style={updatedLessonDetailStyles.retryButtonText}>
+              Tekrar Dene
+            </Text>
           </TouchableOpacity>
         </View>
       );
     }
 
-    if (!lesson || !lesson.exercises) {
+    if (!lesson || !lesson.exercises || lesson.exercises.length === 0) {
       if (currentStep !== "noQuestions") {
         setCurrentStep("noQuestions");
       }
       return (
-        <View style={lessonDetailStyles.centered}>
-          <Text style={lessonDetailStyles.noQuestionText}>
-            Ders verisi veya egzersizler mevcut değil. Lütfen daha sonra tekrar
-            deneyin.
+        <View style={updatedLessonDetailStyles.centered}>
+          <Text style={updatedLessonDetailStyles.noQuestionText}>
+            Ders verisi veya egzersizler mevcut değil.
           </Text>
           <TouchableOpacity
-            style={lessonDetailStyles.retryButton}
+            style={updatedLessonDetailStyles.retryButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={lessonDetailStyles.retryButtonText}>Geri Dön</Text>
+            <Text style={updatedLessonDetailStyles.retryButtonText}>
+              Geri Dön
+            </Text>
           </TouchableOpacity>
         </View>
       );
@@ -264,22 +309,23 @@ const LessonDetailScreen: React.FC = () => {
     switch (currentStep) {
       case "intro":
         return (
-          <ScrollView contentContainerStyle={lessonDetailStyles.introContainer}>
-            <Text style={lessonDetailStyles.lessonTitle}>
+          <ScrollView
+            contentContainerStyle={updatedLessonDetailStyles.introContainer}
+          >
+            <Text style={updatedLessonDetailStyles.lessonTitle}>
               {currentLesson.title}
             </Text>
-            <Text style={lessonDetailStyles.lessonDescription}>
+            <Text style={updatedLessonDetailStyles.lessonDescription}>
               {currentLesson.description}
             </Text>
-            <Text style={lessonDetailStyles.lessonInfo}>
+            <Text style={updatedLessonDetailStyles.lessonInfo}>
               Toplam Soru: {currentExercises.length}
             </Text>
-            <Text style={lessonDetailStyles.lessonInfo}>
+            <Text style={updatedLessonDetailStyles.lessonInfo}>
               Zorluk Seviyesi: {currentLesson.level}
             </Text>
-
             <TouchableOpacity
-              style={lessonDetailStyles.startButton}
+              style={updatedLessonDetailStyles.startButton}
               onPress={() => {
                 if (currentExercises.length > 0) {
                   setCurrentStep("exercises");
@@ -292,16 +338,17 @@ const LessonDetailScreen: React.FC = () => {
                 }
               }}
             >
-              <Text style={lessonDetailStyles.startButtonText}>
+              <Text style={updatedLessonDetailStyles.startButtonText}>
                 Derse Başla
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={lessonDetailStyles.backButton}
+              style={updatedLessonDetailStyles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={lessonDetailStyles.backButtonText}>Geri Dön</Text>
+              <Text style={updatedLessonDetailStyles.backButtonText}>
+                Geri Dön
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         );
@@ -310,66 +357,70 @@ const LessonDetailScreen: React.FC = () => {
         const currentExercise = currentExercises[currentExerciseIndex];
         if (!currentExercise) {
           return (
-            <View style={lessonDetailStyles.centered}>
-              <Text style={lessonDetailStyles.noQuestionText}>
+            <View style={updatedLessonDetailStyles.centered}>
+              <Text style={updatedLessonDetailStyles.noQuestionText}>
                 Egzersiz bulunamadı veya yüklenemedi (geçersiz index).
               </Text>
             </View>
           );
         }
-
         const correctAnswerString = Array.isArray(currentExercise.correctAnswer)
           ? currentExercise.correctAnswer[0] || ""
           : currentExercise.correctAnswer || "";
 
         return (
-          <View style={lessonDetailStyles.exerciseScreenContainer}>
-            <Text style={lessonDetailStyles.scoreAndProgressText}>
+          <View style={updatedLessonDetailStyles.exerciseScreenContainer}>
+            <View style={updatedLessonDetailStyles.heartsContainer}>
+              <Text style={updatedLessonDetailStyles.heartsText}>
+                Kalp: {hearts}
+              </Text>
+            </View>
+            <Text style={updatedLessonDetailStyles.scoreAndProgressText}>
               Bu Ders Puanı: {earnedPoints} | Soru {currentExerciseIndex + 1}/
               {currentExercises.length}
             </Text>
             <ScrollView
-              contentContainerStyle={lessonDetailStyles.exerciseContainer}
+              contentContainerStyle={
+                updatedLessonDetailStyles.exerciseContainer
+              }
             >
-              <Text style={lessonDetailStyles.questionText}>
+              <Text style={updatedLessonDetailStyles.questionText}>
                 {currentExercise.question}
               </Text>
-
               {currentExercise.type === "multipleChoice" && (
-                <View style={lessonDetailStyles.optionsContainer}>
+                <View style={updatedLessonDetailStyles.optionsContainer}>
                   {currentExercise.options?.map((option, index) => (
                     <TouchableOpacity
                       key={index}
                       style={[
-                        lessonDetailStyles.optionButton,
+                        updatedLessonDetailStyles.optionButton,
                         selectedOption === option &&
-                          lessonDetailStyles.selectedOption,
+                          updatedLessonDetailStyles.selectedOption,
                         showFeedbackArea &&
                           correctAnswerString.toLowerCase() ===
                             option.toLowerCase() &&
-                          lessonDetailStyles.correctOption,
+                          updatedLessonDetailStyles.correctOption,
                         showFeedbackArea &&
                           !isCorrectAnswer &&
                           selectedOption === option &&
-                          lessonDetailStyles.wrongOption,
+                          updatedLessonDetailStyles.wrongOption,
                       ]}
                       onPress={() =>
                         !showFeedbackArea && setSelectedOption(option)
                       }
                       disabled={showFeedbackArea}
                     >
-                      <Text style={lessonDetailStyles.optionText}>
+                      <Text style={updatedLessonDetailStyles.optionText}>
                         {option}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               )}
-
               {(currentExercise.type === "text" ||
                 currentExercise.type === "fillInTheBlanks") && (
                 <TextInput
-                  style={lessonDetailStyles.textInput}
+                  style={updatedLessonDetailStyles.textInput}
                   placeholder={
                     currentExercise.type === "text"
                       ? "Cevabınızı buraya yazın..."
@@ -380,18 +431,16 @@ const LessonDetailScreen: React.FC = () => {
                   editable={!showFeedbackArea}
                 />
               )}
-
               <TouchableOpacity
-                style={lessonDetailStyles.submitButton}
+                style={updatedLessonDetailStyles.submitButton}
                 onPress={handleAnswer}
                 disabled={showFeedbackArea}
               >
-                <Text style={lessonDetailStyles.submitButtonText}>
+                <Text style={updatedLessonDetailStyles.submitButtonText}>
                   Cevabı Kontrol Et
                 </Text>
               </TouchableOpacity>
             </ScrollView>
-
             <QuizAnswerFeedback
               isVisible={showFeedbackArea}
               isCorrect={isCorrectAnswer}
@@ -403,89 +452,81 @@ const LessonDetailScreen: React.FC = () => {
 
       case "summary":
         return (
-          <View style={lessonDetailStyles.summaryContainer}>
-            <Text style={lessonDetailStyles.summaryTitle}>
+          <View style={updatedLessonDetailStyles.summaryContainer}>
+            <Text style={updatedLessonDetailStyles.summaryTitle}>
               Ders Tamamlandı!
             </Text>
-            <Text style={lessonDetailStyles.motivationText}>
+            <Text style={updatedLessonDetailStyles.motivationText}>
               {motivationText}
             </Text>
-            <View style={lessonDetailStyles.summaryStats}>
-              <Text style={lessonDetailStyles.summaryStatText}>
+            <View style={updatedLessonDetailStyles.summaryStats}>
+              <Text style={updatedLessonDetailStyles.summaryStatText}>
                 Toplam Soru: {totalQuestions}
               </Text>
               <Text
                 style={[
-                  lessonDetailStyles.summaryStatText,
-                  lessonDetailStyles.summaryStatCorrect,
+                  updatedLessonDetailStyles.summaryStatText,
+                  updatedLessonDetailStyles.summaryStatCorrect,
                 ]}
               >
                 Doğru Cevap: {correctAnswersCount}
               </Text>
               <Text
                 style={[
-                  lessonDetailStyles.summaryStatText,
-                  lessonDetailStyles.summaryStatIncorrect,
+                  updatedLessonDetailStyles.summaryStatText,
+                  updatedLessonDetailStyles.summaryStatIncorrect,
                 ]}
               >
-                Yanlış Cevap: {wrongAnswersCount}
+                Yanlış Cevap: {totalQuestions - correctAnswersCount}
               </Text>
-              <Text style={lessonDetailStyles.summaryPointsText}>
+              <Text style={updatedLessonDetailStyles.summaryPointsText}>
                 Kazanılan Puan: {earnedPoints}
               </Text>
             </View>
+            <TouchableOpacity
+              style={updatedLessonDetailStyles.backToPathButton}
+              onPress={completeLessonOnBackend}
+            >
+              <Text style={updatedLessonDetailStyles.backToPathButtonText}>
+                {isLessonCompleted ? "Geri Dön" : "Puanları Topla"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
 
-            {!scoreUpdateCompleted ? (
-              <TouchableOpacity
-                style={lessonDetailStyles.backToPathButton}
-                onPress={completeLessonOnBackend}
-                disabled={isScoreUpdating}
-              >
-                {isScoreUpdating ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
-                ) : (
-                  <Text style={lessonDetailStyles.backToPathButtonText}>
-                    Puanları Topla
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={lessonDetailStyles.backToPathButton}
-                onPress={() => {
-                  if (userLanguageId) {
-                    navigation.replace("AppTabs", {
-                      screen: "LearningPathScreen",
-                      params: { selectedLanguageId: userLanguageId },
-                    });
-                  } else {
-                    Alert.alert(
-                      "Bilgi Eksik",
-                      "Öğrenme yoluna dönmek için dil bilgisi gerekli. Lütfen dil seçiminizi kontrol edin."
-                    );
-                    navigation.replace("InitialLanguageSelectionScreen");
-                  }
-                }}
-              >
-                <Text style={lessonDetailStyles.backToPathButtonText}>
-                  Öğrenme Yoluna Geri Dön
-                </Text>
-              </TouchableOpacity>
-            )}
+      case "gameOver":
+        return (
+          <View style={updatedLessonDetailStyles.centered}>
+            <Text style={updatedLessonDetailStyles.gameOverTitle}>
+              Kalplerin Bitti!
+            </Text>
+            <Text style={updatedLessonDetailStyles.gameOverText}>
+              Dersi tamamlayamadın. Tekrar dene!
+            </Text>
+            <TouchableOpacity
+              style={updatedLessonDetailStyles.retryButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={updatedLessonDetailStyles.retryButtonText}>
+                Geri Dön
+              </Text>
+            </TouchableOpacity>
           </View>
         );
 
       case "noQuestions":
         return (
-          <View style={lessonDetailStyles.centered}>
-            <Text style={lessonDetailStyles.noQuestionText}>
-              Bu derste henüz egzersiz bulunmamaktadır.
+          <View style={updatedLessonDetailStyles.centered}>
+            <Text style={updatedLessonDetailStyles.noQuestionText}>
+              Bu derste egzersiz bulunmamaktadır.
             </Text>
             <TouchableOpacity
-              style={lessonDetailStyles.retryButton}
+              style={updatedLessonDetailStyles.retryButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={lessonDetailStyles.retryButtonText}>Geri Dön</Text>
+              <Text style={updatedLessonDetailStyles.retryButtonText}>
+                Geri Dön
+              </Text>
             </TouchableOpacity>
           </View>
         );
@@ -495,7 +536,9 @@ const LessonDetailScreen: React.FC = () => {
     }
   };
 
-  return <View style={lessonDetailStyles.container}>{renderContent()}</View>;
+  return (
+    <View style={updatedLessonDetailStyles.container}>{renderContent()}</View>
+  );
 };
 
 export default LessonDetailScreen;
