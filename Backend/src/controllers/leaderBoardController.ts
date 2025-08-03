@@ -1,11 +1,14 @@
+//LIBRARY
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
+import { format, subMonths } from "date-fns";
+import { Types, Document } from "mongoose";
+
+//MY SCRIPTS
 import LeaderboardEntry, {
   ILeaderboardEntry,
 } from "../models/LeaderboardEntry";
 import { IUser } from "../models/User";
-import { format, subMonths } from "date-fns";
-import { Types, Document } from "mongoose";
 
 interface LeaderboardPublicEntry {
   rank: number;

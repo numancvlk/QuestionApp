@@ -123,6 +123,7 @@ export const updateGlobalScore = asyncHandler(
   }
 );
 
+//BU ÖZELLİĞİ KALDIRDIM AMA KALSIN KODLARI İLERİDE İŞE YARAYABİLRİ
 export const getDailyQuestionStatus = asyncHandler(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) {

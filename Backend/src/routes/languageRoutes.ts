@@ -12,7 +12,9 @@ import { protect, authorizeRoles } from "../middleware/authMiddleware";
 const ROUTER = Router();
 
 ROUTER.get("/", getLanguages);
+
 ROUTER.get("/:languageId/learning-path", protect, getLearningPath);
+
 ROUTER.post("/", protect, authorizeRoles("admin"), createLanguage);
 
 export default ROUTER;

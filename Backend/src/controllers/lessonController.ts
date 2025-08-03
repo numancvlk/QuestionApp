@@ -1,7 +1,8 @@
 //LIBRARY
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import mongoose from "mongoose";
 import asyncHandler from "../utils/asyncHandler";
+
 //MY SCRIPTS
 import Lesson, { IQuestionInLesson } from "../models/Lesson";
 import User, { IUser } from "../models/User";
@@ -512,7 +513,7 @@ export const checkDailyQuizAnswer = asyncHandler(
     let explanation = "Bu sorunun cevabı hakkında ek bilgi...";
 
     if (isCorrect) {
-      user.globalScore = (user.globalScore || 0) + 10; // Örnek puan: 10
+      user.globalScore = (user.globalScore || 0) + 10;
       user.lastDailyQuestionAnswered = new Date();
     } else {
       user.lastDailyQuestionAnswered = new Date();

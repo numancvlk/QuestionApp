@@ -9,6 +9,7 @@ export interface ILanguageProgressValue {
 }
 
 export interface IUser extends MongooseDocument {
+  //BAZI ÖZELLİKLER ÇIKARILDI KODLARI KALABİLİR
   _id: mongoose.Types.ObjectId;
   username: string;
   email: string;

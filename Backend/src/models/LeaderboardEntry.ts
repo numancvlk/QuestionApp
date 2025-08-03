@@ -1,5 +1,8 @@
+//LIBRARY
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { PopulatedDoc } from "mongoose";
+
+//MY SCRIPTS
 import { IUser } from "./User";
 
 export interface ILeaderboardEntry extends Document {
