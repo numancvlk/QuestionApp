@@ -1,8 +1,8 @@
-# 🎬 REACT NATIVE - QUESTION APP - PROGRAMMING LANGUAGE QUESTION APP 
+# 🎬 REACT NATIVE - PROGRAMMING LANGUAGE QUESTION APP 
 
 ## 🚀 Proje Hakkında 
 
-Bu mobil uygulama, React Native (TypeScript ile), Express.js (TypeScript ile) ve MongoDB teknolojilerini kullanarak geliştirilmiştir. Uygulama, kullanıcıların gelişmek istediği programlama dillerinde gelişmelerini sağlamak amacıyla sorular sorar. Bu sayede kullanıcı bolca pratik ile programlama dillerindeki hakimiyetini arttırabilir.
+Bu mobil uygulama, React Native (TypeScript ile), Express.js (TypeScript ile) ve MongoDB teknolojilerini kullanarak geliştirilmiştir. Uygulama, kullanıcıların gelişmek istediği programlama dillerindeki hakimiyetlerini arttırmaları için sorular sorar. Bu sayede kullanıcı bolca pratik ile programlama dillerindeki hakimiyetini arttırabilir.
 
 ## ✨ Özellikler 
 
