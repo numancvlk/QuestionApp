@@ -62,7 +62,7 @@ const InitialLanguageSelectionScreen: React.FC = () => {
         `${updatedUser.username} için dil başarıyla seçildi!`
       );
 
-      navigation.replace("AppTabs");
+      navigation.replace("AppTabs", { screen: "LearningPathScreen" });
     } catch (error: any) {
       console.error(
         "Dil seçimi kaydedilirken hata oluştu:",

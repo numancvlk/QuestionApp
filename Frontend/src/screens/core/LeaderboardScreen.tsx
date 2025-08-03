@@ -14,6 +14,8 @@ import {
   updateLeaderboardScore,
 } from "../../api/userApi";
 
+import { useAuth } from "../../context/AuthContext";
+
 import { leaderboardStyles as styles } from "../../styles/ScreenStyles/LeaderboardScreen.style";
 
 interface LeaderboardPublicEntry {
@@ -31,6 +33,11 @@ interface PastLeaderboardData {
 }
 
 const Leaderboard: React.FC = () => {
+  // useAuth hook'unu kullanarak mevcut kullanıcıyı alıyoruz
+  const { user } = useAuth();
+  // AuthContext'teki User tipinin '_id' özelliğini kullandığı için düzeltildi.
+  const userId = user?._id;
+
   const [currentLeaderboard, setCurrentLeaderboard] = useState<
     LeaderboardPublicEntry[] | null
   >(null);
@@ -66,7 +73,9 @@ const Leaderboard: React.FC = () => {
       const pastData = await getPastLeaderboards();
       setPastLeaderboard(pastData);
       if (pastData) {
-        setPastDisplayMonth(`${pastData.month} ${pastData.year}`);
+        // Geçen ay adının iki kez yazılmasını engellemek için düzeltme
+        const displayMonth = `${pastData.month} ${pastData.year}`;
+        setPastDisplayMonth(displayMonth);
       } else {
         setPastDisplayMonth("Geçen Ay (Veri Yok)");
       }
@@ -89,7 +98,7 @@ const Leaderboard: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007bff" />{" "}
+        <ActivityIndicator size="large" color="#007bff" />
         <Text style={styles.loadingText}>Yükleniyor...</Text>
       </View>
     );
@@ -103,19 +112,39 @@ const Leaderboard: React.FC = () => {
     );
   }
 
-  const renderLeaderboardEntry = (entry: LeaderboardPublicEntry) => (
-    <View key={entry.userId} style={styles.leaderboardItem}>
-      <Text style={styles.rank}>{entry.rank}.</Text>
-      {entry.profileImageUri && (
-        <Image
-          source={{ uri: entry.profileImageUri }}
-          style={styles.profileImage}
-        />
-      )}
-      <Text style={styles.username}>{entry.username}</Text>
-      <Text style={styles.score}>{entry.score} Puan</Text>
-    </View>
-  );
+  const renderLeaderboardEntry = (entry: LeaderboardPublicEntry) => {
+    // Mevcut kullanıcının girişi olup olmadığını kontrol et
+    const isCurrentUser = userId && entry.userId === userId;
+
+    return (
+      <View
+        key={entry.userId}
+        // Mevcut kullanıcı için özel stili uygula
+        style={[
+          styles.leaderboardItem,
+          isCurrentUser && styles.myLeaderboardItem,
+        ]}
+      >
+        <Text style={[styles.rank, isCurrentUser && styles.myLeaderboardText]}>
+          {entry.rank}.
+        </Text>
+        {entry.profileImageUri && (
+          <Image
+            source={{ uri: entry.profileImageUri }}
+            style={styles.profileImage}
+          />
+        )}
+        <Text
+          style={[styles.username, isCurrentUser && styles.myLeaderboardText]}
+        >
+          {entry.username}
+        </Text>
+        <Text style={[styles.score, isCurrentUser && styles.myLeaderboardText]}>
+          {entry.score} Puan
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>

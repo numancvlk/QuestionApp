@@ -81,6 +81,11 @@ export const leaderboardStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
   },
+  myLeaderboardItem: {
+    backgroundColor: Colors.accentPrimary,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
   rank: {
     ...Typography.h3,
     color: Colors.accentPrimary,
@@ -113,5 +118,9 @@ export const leaderboardStyles = StyleSheet.create({
     textAlign: "center",
     marginTop: Spacing.medium,
     color: Colors.textSecondary,
+  },
+  myLeaderboardText: {
+    color: Colors.white,
+    fontWeight: "bold",
   },
 });
