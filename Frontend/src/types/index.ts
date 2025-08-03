@@ -63,7 +63,6 @@ export type Exercise =
   | MultipleChoiceExercise
   | FillInTheBlanksExercise;
 
-// --- Ders Tipleri ---
 export interface Lesson {
   _id: ObjectId;
   title: string;

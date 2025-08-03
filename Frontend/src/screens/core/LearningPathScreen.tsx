@@ -55,21 +55,13 @@ const LearningPathScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        console.log(
-          `[LearningPathScreen] Dersler çekiliyor: ${selectedLanguageId}`
-        );
         const response = await axiosInstance.get(
           `/lessons/by-language/${selectedLanguageId}`
         );
         setLessons(response.data.lessons);
-        console.log(
-          `[LearningPathScreen] ${response.data.lessons.length} ders çekildi.`
-        );
         setError(null);
       } catch (err: any) {
-        console.error("Dersler yüklenirken hata oluştu:", err);
-        const errorMessage =
-          err.response?.data?.message || "Dersler yüklenemedi.";
+        const errorMessage = "Dersler yüklenemedi.";
         setError(errorMessage);
         Alert.alert("Hata", errorMessage);
       } finally {

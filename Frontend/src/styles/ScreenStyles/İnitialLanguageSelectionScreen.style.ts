@@ -1,5 +1,7 @@
 //LIBRARY
 import { StyleSheet } from "react-native";
+
+//STYLES
 import { Colors, Radii, Shadow } from "../GlobalStyles/colors";
 import { Spacing } from "../GlobalStyles/spacing";
 import { FontSizes } from "../GlobalStyles/typography";

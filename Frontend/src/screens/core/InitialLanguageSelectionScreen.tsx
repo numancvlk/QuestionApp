@@ -38,10 +38,7 @@ const InitialLanguageSelectionScreen: React.FC = () => {
         const fetchedLanguages = await getLanguages();
         setLanguages(fetchedLanguages);
       } catch (err: any) {
-        console.error("Diller yüklenirken hata oluştu:", err);
-        setError(
-          err.response?.data?.message || "Diller yüklenirken bir sorun oluştu."
-        );
+        setError("Diller yüklenirken bir sorun oluştu.");
       } finally {
         setIsLoading(false);
       }
@@ -64,15 +61,7 @@ const InitialLanguageSelectionScreen: React.FC = () => {
 
       navigation.replace("AppTabs", { screen: "LearningPathScreen" });
     } catch (error: any) {
-      console.error(
-        "Dil seçimi kaydedilirken hata oluştu:",
-        error.response?.data?.message || error.message
-      );
-      Alert.alert(
-        "Hata",
-        error.response?.data?.message ||
-          "Dil seçimi kaydedilirken bir sorun oluştu."
-      );
+      Alert.alert("Hata", "Dil seçimi kaydedilirken bir sorun oluştu.");
     } finally {
       setIsLoading(false);
     }

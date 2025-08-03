@@ -1,4 +1,7 @@
+// MY SCRIPTS
 import { StyleSheet } from "react-native";
+
+//STYLES
 import { Colors } from "../GlobalStyles/colors";
 import { globalStyles } from "../GlobalStyles/globalStyles";
 

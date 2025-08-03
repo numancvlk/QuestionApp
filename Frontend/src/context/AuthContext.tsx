@@ -116,13 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(loggedInUser);
         setIsAuthenticated(true);
       } catch (error: any) {
-        Alert.alert(
-          "Giriş Hatası",
-          error.response?.data?.message || "Kullanıcı adı veya şifre yanlış."
-        );
+        Alert.alert("Giriş Hatası", "Kullanıcı adı veya şifre yanlış.");
         setIsAuthenticated(false);
         setUser(null);
-        throw error;
       } finally {
         setIsLoading(false);
       }
@@ -136,11 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await registerUser(userData);
       Alert.alert("Başarılı", "Kayıt başarılı! Lütfen giriş yapın.");
     } catch (error: any) {
-      Alert.alert(
-        "Kayıt Hatası",
-        error.response?.data?.message || "Kayıt yapılırken bir sorun oluştu."
-      );
-      throw error;
+      Alert.alert("Kayıt Hatası", "Kayıt yapılırken bir sorun oluştu.");
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +146,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setInitialRoute("LoginScreen");
     } catch (error) {
-      console.error("Çıkış yapılırken hata oluştu:", error);
       Alert.alert("Hata", "Çıkış yapılırken bir sorun oluştu.");
     } finally {
       setIsLoading(false);

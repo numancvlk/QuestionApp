@@ -80,15 +80,9 @@ const QuickQuizScreen = () => {
       setMotivationText("");
 
       try {
-        console.log(
-          `[QuickQuizScreen] Fetching questions for language: ${userLanguageId}, level: ${level}`
-        );
         const fetchedQuestions = await getQuickQuizQuestions(
           userLanguageId,
           level
-        );
-        console.log(
-          `[QuickQuizScreen] Fetched ${fetchedQuestions.length} questions.`
         );
 
         if (fetchedQuestions.length === 0) {
@@ -103,7 +97,6 @@ const QuickQuizScreen = () => {
         setQuestions(fetchedQuestions);
         setCurrentStep("question");
       } catch (error) {
-        console.error("[QuickQuizScreen] Quiz soruları çekme hatası:", error);
         Alert.alert("Hata", "Quiz soruları yüklenirken bir sorun oluştu.");
         setCurrentStep("intro");
       } finally {
@@ -165,7 +158,6 @@ const QuickQuizScreen = () => {
       }
       setShowFeedbackArea(true);
     } catch (error) {
-      console.error("[QuickQuizScreen] Cevap kontrolü hatası:", error);
       Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
       setShowFeedbackArea(false);
     } finally {
@@ -191,9 +183,7 @@ const QuickQuizScreen = () => {
       await checkAuthStatus();
       setScoreUpdateCompleted(true);
       Alert.alert("Başarılı", "Puanınız başarıyla hesabınıza eklendi!");
-      console.log("[QuickQuizScreen] Puan başarıyla güncellendi.");
     } catch (error) {
-      console.error("[QuickQuizScreen] Global skor güncelleme hatası:", error);
       Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
       setScoreUpdateCompleted(true);
     } finally {

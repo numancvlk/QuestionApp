@@ -51,7 +51,7 @@ API.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject("errorr");
   }
 );
 
@@ -62,7 +62,7 @@ API.interceptors.response.use(
       await removeToken();
       Alert.alert("Oturum Süresi Doldu", "Lütfen tekrar giriş yapın.");
     }
-    return Promise.reject(error);
+    return Promise.reject("errorr");
   }
 );
 
@@ -71,7 +71,7 @@ export const getUserProfile = async (): Promise<User> => {
     const response = await API.get("/user/profile");
     return response.data.user;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -80,7 +80,7 @@ export const selectLanguage = async (languageId: string): Promise<User> => {
     const response = await API.post("/user/select-language", { languageId });
     return response.data.user;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -89,7 +89,7 @@ export const registerUser = async (userData: any): Promise<any> => {
     const response = await API.post("/auth/register", userData);
     return response.data;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -100,7 +100,7 @@ export const loginUser = async (
     const response = await API.post("/auth/login", credentials);
     return response.data;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -111,7 +111,7 @@ export const getLessonsByLanguage = async (
     const response = await API.get(`/lessons/by-language/${languageId}`);
     return response.data.lessons;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -120,7 +120,7 @@ export const getLessonById = async (lessonId: string): Promise<Lesson> => {
     const response = await API.get(`/lessons/${lessonId}`);
     return response.data.lesson;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -129,7 +129,7 @@ export const getLanguages = async (): Promise<Language[]> => {
     const response = await API.get("/languages");
     return response.data.languages;
   } catch (error: any) {
-    throw error;
+    throw "errorr";
   }
 };
 
@@ -145,12 +145,11 @@ export const getRandomQuestion = async (
     );
     return response.data.question;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch random question."
-    );
+    throw new Error("Failed to fetch random question.");
   }
 };
 
+//KALDIRILDI
 export const getDailyQuestion = async (
   languageId: string
 ): Promise<QuizQuestion> => {
@@ -158,9 +157,7 @@ export const getDailyQuestion = async (
     const response = await API.get(`/lessons/questions/daily/${languageId}`);
     return response.data.question;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch daily question."
-    );
+    throw new Error("Failed to fetch daily question.");
   }
 };
 
@@ -169,23 +166,22 @@ export const updateScore = async (points: number): Promise<User> => {
     const response = await API.post("/user/update-global-score", { points });
     return response.data.user;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to update score.");
+    throw new Error("Failed to update score.");
   }
 };
 
+//KALDIRILDI
 export const checkDailyQuestionStatus =
   async (): Promise<DailyQuestionStatus> => {
     try {
       const response = await API.get("/user/daily-status");
       return response.data;
     } catch (error: any) {
-      throw new Error(
-        error.response?.data?.message ||
-          "Failed to check daily question status."
-      );
+      throw new Error("Failed to check daily question status.");
     }
   };
 
+//KALDIRILDIII
 export const checkDailyQuestionAnswer = async (
   questionId: string,
   selectedAnswer: string
@@ -202,9 +198,7 @@ export const checkDailyQuestionAnswer = async (
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to check daily question answer."
-    );
+    throw new Error("Failed to check daily question answer.");
   }
 };
 
@@ -244,9 +238,7 @@ export const completeLesson = async (
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Ders tamamlama işlemi başarısız oldu."
-    );
+    throw new Error("Ders tamamlama işlemi başarısız oldu.");
   }
 };
 
@@ -262,9 +254,7 @@ export const getQuickQuizQuestions = async (
     );
     return response.data.questions;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch quick quiz questions."
-    );
+    throw new Error("Failed to fetch quick quiz questions.");
   }
 };
 
@@ -280,9 +270,7 @@ export const getTimedQuizQuestions = async (
     );
     return response.data.questions;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch timed quiz questions."
-    );
+    throw new Error("Failed to fetch timed quiz questions.");
   }
 };
 
@@ -302,9 +290,7 @@ export const checkQuizAnswer = async (
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || "Failed to check quiz answer."
-    );
+    throw new Error("Failed to check quiz answer.");
   }
 };
 
@@ -313,11 +299,7 @@ export const getCurrentLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     const response = await API.get("/leaderboards/current");
     return response.data;
   } catch (error: any) {
-    console.error("Backend'den mevcut liderlik panosu çekilirken hata:", error);
-    throw new Error(
-      error.response?.data?.message ||
-        "Mevcut liderlik panosu verileri çekilemedi."
-    );
+    throw new Error("Mevcut liderlik panosu verileri çekilemedi.");
   }
 };
 
@@ -327,14 +309,7 @@ export const getPastLeaderboards =
       const response = await API.get("/leaderboards/past");
       return response.data || null;
     } catch (error: any) {
-      console.error(
-        "Backend'den geçen ay liderlik panosu çekilirken hata:",
-        error
-      );
-      throw new Error(
-        error.response?.data?.message ||
-          "Geçen ay liderlik panosu verileri çekilemedi."
-      );
+      throw new Error("Geçen ay liderlik panosu verileri çekilemedi.");
     }
   };
 
@@ -347,10 +322,7 @@ export const updateLeaderboardScore = async (): Promise<{
     const response = await API.post("/leaderboards/update", {});
     return response.data;
   } catch (error: any) {
-    console.error("Liderlik panosu skoru güncellenirken hata:", error);
-    throw new Error(
-      error.response?.data?.message || "Liderlik panosu skoru güncellenemedi."
-    );
+    throw new Error("Liderlik panosu skoru güncellenemedi.");
   }
 };
 
@@ -359,10 +331,7 @@ export const resetMonthlyScores = async (): Promise<{ message: string }> => {
     const response = await API.post("/leaderboards/reset", {});
     return response.data;
   } catch (error: any) {
-    console.error("Aylık liderlik panosu sıfırlanırken hata:", error);
-    throw new Error(
-      error.response?.data?.message || "Aylık liderlik panosu sıfırlanamadı."
-    );
+    throw new Error("Aylık liderlik panosu sıfırlanamadı.");
   }
 };
 
@@ -383,9 +352,6 @@ export const checkLessonAnswer = async (
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message ||
-        "Ders cevabı kontrol edilirken hata oluştu."
-    );
+    throw new Error("Ders cevabı kontrol edilirken hata oluştu.");
   }
 };

@@ -8,7 +8,7 @@ export const setToken = async (token: string): Promise<void> => {
     await AsyncStorage.setItem(TOKEN_KEY, token);
     console.log("Token kaydedildi.");
   } catch (error) {
-    console.error("Token kaydedilirken hata oluştu:", error);
+    console.error("Token kaydedilirken hata oluştu");
   }
 };
 
@@ -17,7 +17,7 @@ export const getToken = async (): Promise<string | null> => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
     return token;
   } catch (error) {
-    console.error("Token alınırken hata oluştu:", error);
+    console.error("Token alınırken hata oluştu");
     return null;
   }
 };
@@ -27,6 +27,6 @@ export const removeToken = async (): Promise<void> => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     console.log("Token silindi.");
   } catch (error) {
-    console.error("Token silinirken hata oluştu:", error);
+    console.error("Token silinirken hata oluştu");
   }
 };

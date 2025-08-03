@@ -1,4 +1,7 @@
+//LIBRARY
 import { StyleSheet } from "react-native";
+
+//STYLES
 import { Colors, Radii, Shadow } from "../GlobalStyles/colors";
 import { globalStyles } from "../GlobalStyles/globalStyles";
 import { Spacing } from "../GlobalStyles/spacing";

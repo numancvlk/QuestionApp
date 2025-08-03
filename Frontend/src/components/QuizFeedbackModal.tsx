@@ -25,7 +25,6 @@ const QuizAnswerFeedback: React.FC<QuizAnswerFeedbackProps> = ({
   }
 
   const backgroundColor = isCorrect ? Colors.successGreen : Colors.errorRed;
-  const continueButtonText = isCorrect ? "Devam" : "Devam";
 
   return (
     <View style={[styles.container, { backgroundColor }]}>

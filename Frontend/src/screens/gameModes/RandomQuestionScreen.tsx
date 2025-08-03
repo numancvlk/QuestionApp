@@ -18,7 +18,6 @@ import {
   checkQuizAnswer,
 } from "../../api/userApi";
 import { QuizQuestion as QuestionType } from "../../types";
-
 import QuizIntroScreen from "../../components/QuizIntroScreen";
 import QuizQuestionComponent from "../../components/QuizQuestion";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
@@ -74,11 +73,7 @@ const RandomQuestionScreen = () => {
       const question = await getRandomQuestion(userLanguageId);
       setCurrentQuestion(question);
     } catch (error: any) {
-      console.error("[RandomQuizScreen] Soru çekme hatası:", error);
-      Alert.alert(
-        "Hata",
-        error.message || "Rastgele soru yüklenirken bir sorun oluştu."
-      );
+      Alert.alert("Hata", "Rastgele soru yüklenirken bir sorun oluştu.");
       setQuizEnded(true);
     } finally {
       setLoadingQuestion(false);
@@ -173,7 +168,6 @@ const RandomQuestionScreen = () => {
       }
       setShowFeedbackArea(true);
     } catch (error) {
-      console.error("[RandomQuizScreen] Cevap kontrolü hatası:", error);
       Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
       setShowFeedbackArea(false);
     } finally {
@@ -204,10 +198,8 @@ const RandomQuestionScreen = () => {
       await updateScore(currentQuizScore);
       await checkAuthStatus();
       setScoreUpdateCompleted(true);
-      console.log("[RandomQuizScreen] Puan başarıyla güncellendi.");
       Alert.alert("Başarılı", "Puanınız başarıyla hesabınıza eklendi!");
     } catch (error) {
-      console.error("[RandomQuizScreen] Global skor güncelleme hatası:", error);
       Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
       setScoreUpdateCompleted(true);
     } finally {

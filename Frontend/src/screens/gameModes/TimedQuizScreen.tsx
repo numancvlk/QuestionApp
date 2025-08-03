@@ -18,7 +18,6 @@ import {
   checkQuizAnswer,
 } from "../../api/userApi";
 import { QuizQuestion as QuestionType } from "../../types";
-
 import QuizIntroScreen from "../../components/QuizIntroScreen";
 import QuizQuestionComponent from "../../components/QuizQuestion";
 import QuizSummaryScreen from "../../components/QuizSummaryScreen";
@@ -76,7 +75,6 @@ const TimedQuizScreen = () => {
       const question = await getRandomQuestion(userLanguageId);
       setCurrentQuestion(question);
     } catch (error) {
-      console.error("[TimedQuizScreen] Soru çekme hatası:", error);
       Alert.alert("Hata", "Yeni soru yüklenirken bir sorun oluştu.");
       if (quizStarted) {
         setQuizEnded(true);
@@ -179,7 +177,6 @@ const TimedQuizScreen = () => {
       }
       setShowFeedbackArea(true);
     } catch (error) {
-      console.error("[TimedQuizScreen] Cevap kontrolü hatası:", error);
       Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
       setShowFeedbackArea(false);
     }
@@ -205,7 +202,6 @@ const TimedQuizScreen = () => {
       setScoreUpdateCompleted(true);
       console.log("[TimedQuizScreen] Puan başarıyla güncellendi.");
     } catch (error) {
-      console.error("[TimedQuizScreen] Global skor güncelleme hatası:", error);
       Alert.alert("Hata", "Puan güncelleme sırasında bir sorun oluştu.");
       setScoreUpdateCompleted(true);
     } finally {

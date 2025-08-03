@@ -1,3 +1,4 @@
+//LIBRARY
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -8,14 +9,16 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+
+//MY SCRIPTS
 import {
   getCurrentLeaderboard,
   getPastLeaderboards,
   updateLeaderboardScore,
 } from "../../api/userApi";
-
 import { useAuth } from "../../context/AuthContext";
 
+//STYLES
 import { leaderboardStyles as styles } from "../../styles/ScreenStyles/LeaderboardScreen.style";
 
 interface LeaderboardPublicEntry {
@@ -33,9 +36,7 @@ interface PastLeaderboardData {
 }
 
 const Leaderboard: React.FC = () => {
-  // useAuth hook'unu kullanarak mevcut kullanıcıyı alıyoruz
   const { user } = useAuth();
-  // AuthContext'teki User tipinin '_id' özelliğini kullandığı için düzeltildi.
   const userId = user?._id;
 
   const [currentLeaderboard, setCurrentLeaderboard] = useState<
@@ -73,7 +74,6 @@ const Leaderboard: React.FC = () => {
       const pastData = await getPastLeaderboards();
       setPastLeaderboard(pastData);
       if (pastData) {
-        // Geçen ay adının iki kez yazılmasını engellemek için düzeltme
         const displayMonth = `${pastData.month} ${pastData.year}`;
         setPastDisplayMonth(displayMonth);
       } else {
@@ -81,10 +81,8 @@ const Leaderboard: React.FC = () => {
       }
     } catch (err: any) {
       const errorMessage =
-        err.message ||
         "Liderlik panosu verileri yüklenirken veya skor güncellenirken bir hata oluştu.";
       setError(errorMessage);
-      console.error(err);
       Alert.alert("Hata", errorMessage);
     } finally {
       setLoading(false);
@@ -113,13 +111,11 @@ const Leaderboard: React.FC = () => {
   }
 
   const renderLeaderboardEntry = (entry: LeaderboardPublicEntry) => {
-    // Mevcut kullanıcının girişi olup olmadığını kontrol et
     const isCurrentUser = userId && entry.userId === userId;
 
     return (
       <View
         key={entry.userId}
-        // Mevcut kullanıcı için özel stili uygula
         style={[
           styles.leaderboardItem,
           isCurrentUser && styles.myLeaderboardItem,

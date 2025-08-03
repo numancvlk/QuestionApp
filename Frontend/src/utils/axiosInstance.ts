@@ -21,12 +21,12 @@ axiosInstance.interceptors.request.use(
         config.headers.Authorization = `Bearer ${userToken}`;
       }
     } catch (error) {
-      console.error("Failed to retrieve token from AsyncStorage", error);
+      console.error("Failed to retrieve token from AsyncStorage");
     }
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject("erroRr");
   }
 );
 
@@ -44,9 +44,9 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       await AsyncStorage.removeItem("userToken");
       console.warn("Authentication token expired or invalid. User logged out.");
-      return Promise.reject(error);
+      return Promise.reject("erroRr");
     }
-    return Promise.reject(error);
+    return Promise.reject("erroRr");
   }
 );
 

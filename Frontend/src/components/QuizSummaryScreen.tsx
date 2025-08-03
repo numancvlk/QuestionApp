@@ -10,7 +10,7 @@ import {
 } from "react-native";
 
 //STYLES
-import { Colors, Radii } from "../styles/GlobalStyles/colors";
+import { Colors } from "../styles/GlobalStyles/colors";
 import { Spacing } from "../styles/GlobalStyles/spacing";
 import { globalStyles } from "../styles/GlobalStyles/globalStyles";
 import { lessonDetailStyles } from "../styles/ScreenStyles/LessonDetailScreen.style";

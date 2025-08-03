@@ -86,7 +86,6 @@ const LessonDetailScreen: React.FC = () => {
       }
       try {
         setLoading(true);
-        console.log(`[LessonDetailScreen] Ders çekiliyor: ${lessonId}`);
         const fetchedLesson = await getLessonById(lessonId);
         setLesson(fetchedLesson);
         setTotalQuestions(fetchedLesson.exercises?.length || 0);
@@ -102,11 +101,7 @@ const LessonDetailScreen: React.FC = () => {
           setIsLessonCompleted(false);
         }
         setError(null);
-        console.log(
-          `[LessonDetailScreen] Ders ${fetchedLesson.title} yüklendi.`
-        );
       } catch (err) {
-        console.error("Ders detayları yüklenirken hata oluştu:", err);
         setError("Ders detayları yüklenemedi.");
         Alert.alert("Hata", "Ders detayları yüklenirken bir sorun oluştu.");
       } finally {
@@ -187,12 +182,7 @@ const LessonDetailScreen: React.FC = () => {
 
       setShowFeedbackArea(true);
     } catch (error: any) {
-      console.error("[LessonDetailScreen] Cevap kontrolü hatası:", error);
-      Alert.alert(
-        "Hata",
-        error.response?.data?.message ||
-          "Cevap kontrol edilirken bir sorun oluştu."
-      );
+      Alert.alert("Hata", "Cevap kontrol edilirken bir sorun oluştu.");
       setShowFeedbackArea(false);
     }
   };
@@ -245,10 +235,6 @@ const LessonDetailScreen: React.FC = () => {
         params: { selectedLanguageId: userLanguageId },
       });
     } catch (error: any) {
-      console.error(
-        "Ders tamamlama API hatası:",
-        error.response?.data || error.message
-      );
       Alert.alert("Hata", "Ders tamamlama sırasında bir sunucu hatası oluştu.");
     }
   };
