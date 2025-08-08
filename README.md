@@ -1,4 +1,4 @@
-# 🎬 REACT NATIVE - PROGRAMMING LANGUAGE QUESTION APP 
+# 🤷 REACT NATIVE - PROGRAMMING LANGUAGE QUESTION APP 
 
 ## 🚀 Proje Hakkında 
 
@@ -86,3 +86,5 @@ Kayıt olduğunuz ilk kullanıcıya database üzerinden admin rolünü vermeniz 
     * Uygulama başarıyla başlatıldığında, emülatörde çalışmaya başlayacaktır. 🎉
 ---
 
+### Bu proje, sadece portföy amacıyla ve ticari bir amaç gütmeden paylaşılmaktadır.
+### This project is shared solely for portfolio purposes and without any commercial intent.
